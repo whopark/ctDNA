@@ -39,17 +39,21 @@ TIER1_2_GENES = {
     "STAT6", "TNFRSF14", "B2M", "CIITA", "CD58", "FAS",
     "BCL10", "CD70", "DTX1", "UBE2A", "SPEN",
     "IRF8", "BTG1", "KLHL6", "TBL1XR1",
-    # Targeted therapy genes
+    
+# Targeted therapy genes
     "BTK", "PLCG2", "PI3KCA", "PIK3CD", "PIK3R1", "PTEN", "MTOR",
     "ALK", "JAK1", "JAK2", "STAT3", "STAT5B",
     "BRAF", "KRAS", "NRAS", "MCL1",
-    # Cell cycle / tumor suppressors
+   
+ # Cell cycle / tumor suppressors
     "CDKN2A", "RB1", "FBXW7", "POT1", "ATM",
-    # Splicing / signaling
+    
+# Splicing / signaling
     "SF3B1", "BIRC3",
-    # Other hematologic malignancy drivers
+    
+# Other hematologic malignancy drivers
     "DNMT3A", "IDH1", "IDH2", "NPM1", "FLT3",
-    "BCOR", "BCORL1", "DDX3X",
+    "BCOR", "BCORL1", "DDX3X"
 }
 
 # Tier 3 genes: broader cancer / lymphoma-associated genes with uncertain significance

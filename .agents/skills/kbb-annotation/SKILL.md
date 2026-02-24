@@ -1,19 +1,32 @@
 ---
 name: kbb-annotation
-description: "Annotate lymphoma ctDNA panel VCF files using Ensembl VEP (GRCh37) with AMP/ASCO/CAP somatic variant tiering. Produces clinical-grade tiered reports. Use when the user says 'annotate VCF', 'annotate .vcf', 'run kbb annotation', 'tier variants', or provides a VCF file for lymphoma/ctDNA analysis."
+description: "Annotate lymphoma ctDNA panel VCF files using Ensembl VEP (GRCh37) 
+with AMP/ASCO/CAP somatic variant tiering. 
+Produces clinical-grade tiered reports. 
+Use when the user says
+-  'annotate VCF', 
+- 'annotate .vcf', 
+- 'run kbb annotation', 
+- 'tier variants', or 
+- provides a VCF file for lymphoma/ctDNA analysis."
 allowed-tools: Read, Write, Edit, Bash, Glob, Grep
 ---
 
 # KBB Annotation — Lymphoma ctDNA Variant Annotation & Tiering
 
-> Annotate VCF files from lymphoma ctDNA panels via Ensembl VEP REST API (GRCh37), classify variants using AMP/ASCO/CAP somatic tiering, and produce clinical report CSVs.
+> Annotate VCF files from lymphoma ctDNA panels via
+-  Ensembl VEP REST API (GRCh37), 
+- classify variants using AMP/ASCO/CAP somatic tiering, and 
+- produce clinical report CSVs as well as docx using template from reference/report_template.docx
 
 ## Overview
 
 This skill runs a two-step pipeline:
 
 1. **Annotate** (`annotate_vcf.py`): Parse VCF → query Ensembl VEP GRCh37 REST API in batches of 200 → produce full annotation CSV with gene, consequence, HGVS, rsID, population AF, ClinVar significance, UniProt, and AMP/ASCO/CAP tier
-2. **Report** (`reformat_tiers.py`): Filter to Tier 1–3 → reformat into clinical report CSV
+2. **Report** (`reformat_tiers.py`): 
+- Filter to Tier 1–3 → reformat into clinical report CSV
+- generate summary report from reference/report_template.docx
 
 ## Output Format
 
@@ -59,22 +72,47 @@ Reference: Li et al., J Mol Diagn. 2017;19:4-23
 ## Gene Lists
 
 ### Tier 1/2 Genes (Established Lymphoma Drivers)
-**DLBCL / B-cell lymphoma**: TP53, MYD88, CD79B, CD79A, EZH2, CREBBP, EP300, BCL2, BCL6, MYC, CARD11, TCF3, ID3, KMT2D, ARID1A, NOTCH1, NOTCH2, TNFAIP3, FOXO1, PRDM1, IRF4, SOCS1, STAT6, GNA13, MEF2B, TNFRSF14, B2M, CIITA, CD58, FAS
+**DLBCL / B-cell lymphoma**: 
+TP53, MYC, BCL2, BCL6, MYD88, CD79B, CARD11, TNFAIP3, KMT2D, CREBBP, EZH2, EP300, 
+ARID1A, NOTCH1, NOTCH2, PIM1, CCND1, CCND3, BTK, PLCG2, SF3B1, ATM, BIRC3, 
+SOCS1, SGK1, TET2, GNA13, IRF4, FOXO1, MEF2B, PRDM1, NFKBIA
 
-**Targeted therapy**: BTK, PI3KCA, PIK3CD, MTOR, ALK, JAK1, JAK2, STAT3, STAT5B, BRAF, KRAS, NRAS
+	
+BTK, PLCG2, BCL2, EZH2, PIK3CD, MTOR, XPO1, MYD88, CD79B, CARD11, NOTCH1, 
+NOTCH2, TP53, IDH2, SYK, IRAK4, MALT1, TNFAIP3, CCND1, CD19
 
-**Hematologic drivers**: TET2, DNMT3A, IDH1, IDH2, NPM1, FLT3, BCOR, BCORL1, DDX3X, PIM1, SGK1
+**Hematologic drivers**: 
+TP53, MYD88, CD79B, CD79A, EZH2, CREBBP, EP300, KMT2D, ARID1A, TET2, DNMT3A, 
+IDH2, IDH1, SF3B1, SRSF2, U2AF1, ATM, BIRC3, NOTCH1, NOTCH2, CARD11, 
+TNFAIP3, PIM1, PRDM1, IRF4, GNA13, FOXO1, MEF2B, CCND1, CCND3, BCL2, 
+BCL6, MYC, STAT3, STAT6, SOCS1, NFKBIA, RHOA, IKZF1, IKZF3
 
 ### Tier 3 Genes (Broader Cancer-Associated)
-**Chromatin/epigenetic**: KMT2A, KMT2C, SETD2, NSD2, WHSC1, ARID1B, ARID2, SMARCA4, PBRM1
+**Chromatin/epigenetic**: 
+KMT2D, CREBBP, EP300, EZH2, ARID1A, ARID1B, SMARCA4, SMARCB1, TET2, DNMT3A, 
+IDH2, IDH1, SETD2, KDM6A, KDM5C, KMT2A, KMT2C, KMT2E, NSD2, NSD1, ASXL1, 
+ASXL2, BCOR, BCORL1, CHD2, CHD4, ATRX, HIST1H1E, HIST1H1C, BCL7A
 
-**DNA repair / cell cycle**: ATM, ATR, CHEK2, BRCA1, BRCA2, RB1, CDKN2A, CDK6
+**DNA repair / cell cycle**: 
+TP53, ATM, ATR, CHEK1, CHEK2, BRCA1, BRCA2, PALB2, RAD51, RAD51C, RAD51D, 
+FANCA, FANCD2, BLM, WRN, MSH2, MSH6, MLH1, PMS2, POLE, POLD1, PARP1, 
+CDKN2A, CDKN2B, RB1, CCND1, CCND2, CCND3, CDK4, CDK6, E2F1, MYC, BCL2, PTEN, TP73
 
-**RTK / signaling**: EGFR, ERBB2, ERBB3, MET, RET, ROS1, KIT, PDGFRA, FBXW7
+**RTK / signaling**: 
+EGFR, ERBB2, ERBB3, ERBB4, FGFR1, FGFR2, FGFR3, PDGFRA, PDGFRB, KIT, MET, FLT3, 
+JAK1, JAK2, JAK3, STAT3, STAT5B, KRAS, NRAS, HRAS, BRAF, MAP2K1, MAP2K2, 
+PIK3CA, PIK3CD, PIK3R1, AKT1, AKT2, AKT3, MTOR, SYK, LYN, BLK, BTK, PLCG2, 
+CARD11, MYD88, IRAK4, TNFAIP3, NFKBIA
 
-**Splicing**: SF3B1, U2AF1, SRSF2, ZRSR2
+**Splicing**: 
+SF3B1, SRSF2, U2AF1, U2AF2, ZRSR2, PRPF8, PRPF40B, SF1, RBM10, RBM15, RBM15B, 
+DDX3X, DDX41, HNRNPK, HNRNPA1, HNRNPA2B1, SFPQ, FUBP1, WTAP, LUC7L2, PHF5A, 
+TCERG1, EFTUD2, SMARCA4, BCOR, BCORL1
 
-**Other lymphoma-associated**: XPO1, MED12, POT1, ITPKB, NFKBIE, TRAF3, BIRC3, MAP3K14, MALT1, RHOA, TBL1XR1, UBR5, DTX1, PCLO, P2RY8, ZFP36L1, DUSP2, HIST1H1E, HIST1H1C, HIST1H1B, HIST1H1D, NF1, NF2, MTOR, TSC1, TSC2, IKZF1, PAX5, EBF1, RUNX1, GATA3
+**Other lymphoma-associated**:
+B2M, CIITA, CD58, FAS, CD70, TNFRSF14, GNA13, P2RY8, S1PR2, POU2AF1, ETV6, TBL1XR1, BTG1, BTG2, 
+KLHL6, ZFP36L1, ZFP36L2, HIST1H1E, HIST1H1C, IRF8, REL, NFKBIE, TRAF3, BCL10, MALT1, SPEN, DTX1,
+ UBE2A, RHOA, VAV1, STAT5B, CCR4, PLCG1, PRKCB, XPO1
 
 ## How to Run
 
