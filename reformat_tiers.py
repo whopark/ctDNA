@@ -6,6 +6,8 @@ Output: ASCO/AMP Classification | Gene | Canonical name | Accession | Nucleotide
 import csv
 import sys
 
+from annotate_vcf import ACTIONABLE_TIER3_GENES
+
 
 def parse_hgvsc(hgvsc):
     """Split 'ENST00000398117.1:c.205_206insGG' into transcript and c. change."""
@@ -46,11 +48,13 @@ def main():
         rows = list(reader)
 
     # Filter to Tier 1-3 with VAF >= 1%, sort by tier then descending VAF
+    # For Tier 3, only include actionable/risk-stratifying genes
     MIN_VAF = 0.01  # 1% VAF threshold
     tier_order = {"Tier 1": 0, "Tier 2": 1, "Tier 3": 2}
     reportable = [r for r in rows
                   if r["tier"] in tier_order
-                  and float(r["sample_af"]) >= MIN_VAF]
+                  and float(r["sample_af"]) >= MIN_VAF
+                  and (r["tier"] != "Tier 3" or r["gene"] in ACTIONABLE_TIER3_GENES)]
     reportable.sort(key=lambda r: (tier_order[r["tier"]], -float(r["sample_af"])))
 
     with open(out_path, "w", newline="", encoding="utf-8") as fout:

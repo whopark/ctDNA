@@ -39,21 +39,17 @@ TIER1_2_GENES = {
     "STAT6", "TNFRSF14", "B2M", "CIITA", "CD58", "FAS",
     "BCL10", "CD70", "DTX1", "UBE2A", "SPEN",
     "IRF8", "BTG1", "KLHL6", "TBL1XR1",
-    
-# Targeted therapy genes
+    # Targeted therapy genes
     "BTK", "PLCG2", "PI3KCA", "PIK3CD", "PIK3R1", "PTEN", "MTOR",
     "ALK", "JAK1", "JAK2", "STAT3", "STAT5B",
     "BRAF", "KRAS", "NRAS", "MCL1",
-   
- # Cell cycle / tumor suppressors
+    # Cell cycle / tumor suppressors
     "CDKN2A", "RB1", "FBXW7", "POT1", "ATM",
-    
-# Splicing / signaling
+    # Splicing / signaling
     "SF3B1", "BIRC3",
-    
-# Other hematologic malignancy drivers
+    # Other hematologic malignancy drivers
     "DNMT3A", "IDH1", "IDH2", "NPM1", "FLT3",
-    "BCOR", "BCORL1", "DDX3X"
+    "BCOR", "BCORL1", "DDX3X",
 }
 
 # Tier 3 genes: broader cancer / lymphoma-associated genes with uncertain significance
@@ -77,6 +73,22 @@ TIER3_GENES = {
     "RHOA", "UBR5",
     "PCLO", "P2RY8", "ZFP36L1", "DUSP2",
     "HIST1H1E", "HIST1H1C", "HIST1H1B", "HIST1H1D",
+}
+
+# Tier 3 reportable whitelist: only actionable (therapeutic drug targets) or
+# risk-stratifying genes are included in the clinical report.
+# Other Tier 3 genes are annotated but excluded from tiered reports.
+ACTIONABLE_TIER3_GENES = {
+    # Actionable — FDA-approved or clinical trial drug targets
+    "KIT",      # imatinib, sunitinib, avapritinib
+    "XPO1",     # selinexor (XPOVIO) — FDA-approved for R/R DLBCL
+    "PIM1",     # PIM kinase inhibitors (AZD1208, SGI-1776)
+    "BIRC3",    # BTK inhibitors (ibrutinib)
+    "EP300",    # HDAC inhibitors, EZH2 inhibitors
+    # Risk stratification — prognostic markers in DLBCL
+    "KMT2C",    # epigenetic, prognostic in DLBCL
+    "FBXW7",    # poor prognosis, Notch/mTOR pathway
+    "BCOR",     # prognostic in hematologic malignancies
 }
 
 # Consequence severity for tiering
@@ -410,8 +422,10 @@ def main():
         if inp:
             result_by_input[inp] = r
 
-    # Write output with tiering
+    # Write output with tiering (VAF > 1% only, Tier 4 excluded)
+    MIN_VAF = 0.01  # 1% VAF threshold
     matched = 0
+    written = 0
     tier_counts = {"Tier 1": 0, "Tier 2": 0, "Tier 3": 0, "Tier 4": 0}
     with open(out_path, "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=OUT_FIELDS)
@@ -428,13 +442,21 @@ def main():
             row.update(ann)
             row["tier"] = assign_tier(row)
             tier_counts[row["tier"]] += 1
-            writer.writerow(row)
+            # Filter: VAF >= 1%, exclude Tier 4, and for Tier 3 keep only actionable genes
+            if float(row["sample_af"]) >= MIN_VAF and row["tier"] != "Tier 4":
+                if row["tier"] == "Tier 3" and row.get("gene", "NA") not in ACTIONABLE_TIER3_GENES:
+                    continue
+                writer.writerow(row)
+                written += 1
 
     print(f"\nDone! {matched}/{len(variants)} variants annotated.", file=sys.stderr)
-    print(f"Output: {out_path}", file=sys.stderr)
-    print(f"\nTier distribution:", file=sys.stderr)
+    print(f"Output: {out_path} ({written} variants written, "
+          f"filtered from {len(variants)} total)", file=sys.stderr)
+    print(f"\nTier distribution (all variants):", file=sys.stderr)
     for tier in ("Tier 1", "Tier 2", "Tier 3", "Tier 4"):
         print(f"  {tier}: {tier_counts[tier]}", file=sys.stderr)
+    print(f"\nReport filter: VAF >= 1%, Tier 4 excluded → "
+          f"{written} variants in output", file=sys.stderr)
 
 
 if __name__ == "__main__":

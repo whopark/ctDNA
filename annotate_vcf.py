@@ -75,6 +75,22 @@ TIER3_GENES = {
     "HIST1H1E", "HIST1H1C", "HIST1H1B", "HIST1H1D",
 }
 
+# Tier 3 reportable whitelist: only actionable (therapeutic drug targets) or
+# risk-stratifying genes are included in the clinical report.
+# Other Tier 3 genes are annotated but excluded from tiered reports.
+ACTIONABLE_TIER3_GENES = {
+    # Actionable — FDA-approved or clinical trial drug targets
+    "KIT",      # imatinib, sunitinib, avapritinib
+    "XPO1",     # selinexor (XPOVIO) — FDA-approved for R/R DLBCL
+    "PIM1",     # PIM kinase inhibitors (AZD1208, SGI-1776)
+    "BIRC3",    # BTK inhibitors (ibrutinib)
+    "EP300",    # HDAC inhibitors, EZH2 inhibitors
+    # Risk stratification — prognostic markers in DLBCL
+    "KMT2C",    # epigenetic, prognostic in DLBCL
+    "FBXW7",    # poor prognosis, Notch/mTOR pathway
+    "BCOR",     # prognostic in hematologic malignancies
+}
+
 # Consequence severity for tiering
 HIGH_IMPACT = {
     "transcript_ablation", 
@@ -426,8 +442,10 @@ def main():
             row.update(ann)
             row["tier"] = assign_tier(row)
             tier_counts[row["tier"]] += 1
-            # Filter: VAF > 1% and exclude Tier 4
+            # Filter: VAF >= 1%, exclude Tier 4, and for Tier 3 keep only actionable genes
             if float(row["sample_af"]) >= MIN_VAF and row["tier"] != "Tier 4":
+                if row["tier"] == "Tier 3" and row.get("gene", "NA") not in ACTIONABLE_TIER3_GENES:
+                    continue
                 writer.writerow(row)
                 written += 1
 

@@ -27,6 +27,7 @@ sys.path.insert(0, str(REPO_ROOT / ".claude"))
 from annotate_vcf import (
     parse_vcf, build_vep_input, query_vep_batch,
     extract_annotation, assign_tier, OUT_FIELDS, BATCH_SIZE,
+    ACTIONABLE_TIER3_GENES,
 )
 from reformat_tiers import parse_hgvsc, parse_hgvsp
 
@@ -124,8 +125,10 @@ class PipelineWorker:
                                  "hgvsp", "rsid", "max_pop_af", "clin_sig", "uniprot"]})
                 row["tier"] = assign_tier(row)
                 tier_counts[row["tier"]] += 1
-                # Filter: VAF >= 1% and exclude Tier 4
+                # Filter: VAF >= 1%, exclude Tier 4, Tier 3 actionable only
                 if float(row["sample_af"]) >= MIN_VAF and row["tier"] != "Tier 4":
+                    if row["tier"] == "Tier 3" and row.get("gene", "NA") not in ACTIONABLE_TIER3_GENES:
+                        continue
                     writer.writerow(row)
                     written += 1
 
@@ -154,7 +157,8 @@ class PipelineWorker:
         tier_order = {"Tier 1": 0, "Tier 2": 1, "Tier 3": 2}
         reportable = [r for r in rows
                       if r["tier"] in tier_order
-                      and float(r["sample_af"]) >= MIN_VAF]
+                      and float(r["sample_af"]) >= MIN_VAF
+                      and (r["tier"] != "Tier 3" or r["gene"] in ACTIONABLE_TIER3_GENES)]
         reportable.sort(key=lambda r: (tier_order[r["tier"]], -float(r["sample_af"])))
 
         with open(out_path, "w", newline="", encoding="utf-8") as fout:
