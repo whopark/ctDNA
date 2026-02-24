@@ -104,8 +104,10 @@ class PipelineWorker:
             if inp:
                 result_by_input[inp] = r
 
+        MIN_VAF = 0.01  # 1% VAF threshold
         tier_counts = {"Tier 1": 0, "Tier 2": 0, "Tier 3": 0, "Tier 4": 0}
         matched = 0
+        written = 0
         with open(out_path, "w", newline="", encoding="utf-8") as f:
             writer = csv.DictWriter(f, fieldnames=OUT_FIELDS)
             writer.writeheader()
@@ -122,9 +124,13 @@ class PipelineWorker:
                                  "hgvsp", "rsid", "max_pop_af", "clin_sig", "uniprot"]})
                 row["tier"] = assign_tier(row)
                 tier_counts[row["tier"]] += 1
-                writer.writerow(row)
+                # Filter: VAF >= 1% and exclude Tier 4
+                if float(row["sample_af"]) >= MIN_VAF and row["tier"] != "Tier 4":
+                    writer.writerow(row)
+                    written += 1
 
-        self.post("log", f"  Done! {matched}/{len(variants)} annotated → {out_path.name}")
+        self.post("log", f"  Done! {matched}/{len(variants)} annotated, "
+                         f"{written} written (VAF>=1%, no Tier 4) → {out_path.name}")
         self.post("tier_result", {
             "case_id": case_id,
             "tier_counts": tier_counts,
@@ -144,8 +150,11 @@ class PipelineWorker:
         with open(annotated_csv, encoding="utf-8") as fin:
             rows = list(csv.DictReader(fin))
 
+        MIN_VAF = 0.01  # 1% VAF threshold
         tier_order = {"Tier 1": 0, "Tier 2": 1, "Tier 3": 2}
-        reportable = [r for r in rows if r["tier"] in tier_order]
+        reportable = [r for r in rows
+                      if r["tier"] in tier_order
+                      and float(r["sample_af"]) >= MIN_VAF]
         reportable.sort(key=lambda r: (tier_order[r["tier"]], -float(r["sample_af"])))
 
         with open(out_path, "w", newline="", encoding="utf-8") as fout:

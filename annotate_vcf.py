@@ -406,8 +406,10 @@ def main():
         if inp:
             result_by_input[inp] = r
 
-    # Write output with tiering
+    # Write output with tiering (VAF > 1% only, Tier 4 excluded)
+    MIN_VAF = 0.01  # 1% VAF threshold
     matched = 0
+    written = 0
     tier_counts = {"Tier 1": 0, "Tier 2": 0, "Tier 3": 0, "Tier 4": 0}
     with open(out_path, "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=OUT_FIELDS)
@@ -424,13 +426,19 @@ def main():
             row.update(ann)
             row["tier"] = assign_tier(row)
             tier_counts[row["tier"]] += 1
-            writer.writerow(row)
+            # Filter: VAF > 1% and exclude Tier 4
+            if float(row["sample_af"]) >= MIN_VAF and row["tier"] != "Tier 4":
+                writer.writerow(row)
+                written += 1
 
     print(f"\nDone! {matched}/{len(variants)} variants annotated.", file=sys.stderr)
-    print(f"Output: {out_path}", file=sys.stderr)
-    print(f"\nTier distribution:", file=sys.stderr)
+    print(f"Output: {out_path} ({written} variants written, "
+          f"filtered from {len(variants)} total)", file=sys.stderr)
+    print(f"\nTier distribution (all variants):", file=sys.stderr)
     for tier in ("Tier 1", "Tier 2", "Tier 3", "Tier 4"):
         print(f"  {tier}: {tier_counts[tier]}", file=sys.stderr)
+    print(f"\nReport filter: VAF >= 1%, Tier 4 excluded → "
+          f"{written} variants in output", file=sys.stderr)
 
 
 if __name__ == "__main__":

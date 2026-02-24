@@ -45,9 +45,12 @@ def main():
         reader = csv.DictReader(fin)
         rows = list(reader)
 
-    # Filter to Tier 1-3, sort by tier then descending VAF
+    # Filter to Tier 1-3 with VAF >= 1%, sort by tier then descending VAF
+    MIN_VAF = 0.01  # 1% VAF threshold
     tier_order = {"Tier 1": 0, "Tier 2": 1, "Tier 3": 2}
-    reportable = [r for r in rows if r["tier"] in tier_order]
+    reportable = [r for r in rows
+                  if r["tier"] in tier_order
+                  and float(r["sample_af"]) >= MIN_VAF]
     reportable.sort(key=lambda r: (tier_order[r["tier"]], -float(r["sample_af"])))
 
     with open(out_path, "w", newline="", encoding="utf-8") as fout:
