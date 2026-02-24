@@ -4,9 +4,16 @@ Annotate lymphoma ctDNA panel VCF files using Ensembl VEP REST API (GRCh37) and 
 
 ## Quick Start
 
+### GUI (recommended)
+
 ```bash
 pip install requests python-docx   # one-time dependencies
+python ctdna_gui.py
+```
 
+### Command Line
+
+```bash
 # 1. Annotate VCF → full annotation CSV with tier assignments
 python annotate_vcf.py sample.vcf
 
@@ -83,10 +90,63 @@ Chromatin/epigenetic, DNA repair, RTK/signaling, splicing, and other lymphoma-as
 | 03-OJS | 436 | 0 | 13 | 23 | BCL6, MEF2B dual, low burden — GCB-DLBCL |
 | 04-PHJ | 410 | 0 | 17 | 28 | MEF2B dual, CREBBP, SPEN cluster, CIITA — GCB-DLBCL |
 
+## GUI Application
+
+Launch the Windows GUI with `python ctdna_gui.py`. The application provides a visual interface for the full pipeline.
+
+```
++------------------------------------------------------------+
+|  ctDNA Annotation Pipeline — Lymphoma Panel                |
++------------------------------------------------------------+
+|  [ Input Files ]                                           |
+|    Browse VCF Files / Browse Folder / Clear All            |
+|    ┌──────────────────────────────────────────┐             |
+|    │ 01-JJH_10679562.vcf                      │             |
+|    │ 02-OKW_10673102.vcf                      │             |
+|    │ 03-OJS_23953884.vcf                      │             |
+|    └──────────────────────────────────────────┘             |
+|  [ Output Settings ]                                       |
+|    Output Directory: C:/.../0224/         [Browse...]       |
+|  [ Patient Metadata (Optional) ]                           |
+|    File: [dropdown]  Patient / Reg No / Specimen / Date    |
+|  [ Pipeline Control ]                                      |
+|    [Step 1: Annotate] [Step 2: Tier] [Step 3: DOCX]       |
+|    [        Run Full Pipeline        ]       [Cancel]      |
+|    Progress: [==============60%==============] File 2/4    |
+|  [ Log | Tier Summary ]                                    |
+|    > Querying VEP batch 2/3 (200 variants)...              |
+|    > Done! 538/538 annotated                               |
+|  [Open Output Folder]  [Open Latest Report]                |
++------------------------------------------------------------+
+```
+
+### Features
+
+| Feature | Description |
+|---------|-------------|
+| **Multi-file selection** | Browse individual VCFs or load all VCFs from a folder |
+| **Auto-metadata** | Patient name and registration number auto-parsed from filename (e.g. `01-JJH_10679562` → JJH / 10679562) |
+| **Step-by-step or full pipeline** | Run individual steps or all 3 in sequence |
+| **Threaded execution** | GUI stays responsive during VEP API calls; cancel anytime |
+| **Real-time progress** | Per-batch VEP progress bar, file counter, color-coded log |
+| **Tier Summary tab** | Treeview table showing per-case tier distribution |
+| **Output actions** | Open output folder in Explorer, open latest .docx report directly |
+| **Date-stamped output** | Default output directory uses `MMDD/` format (e.g. `0224/`) |
+
+### Pipeline Steps in GUI
+
+| Button | Action | Input | Output |
+|--------|--------|-------|--------|
+| **Step 1: Annotate VCF** | Ensembl VEP REST API annotation + AMP/ASCO/CAP tiering | `.vcf` files | `{ID}_annotated.csv` |
+| **Step 2: Tier Report** | Filter Tier 1-3, format for clinical review | `_annotated.csv` | `{ID}_tiered_report.csv` |
+| **Step 3: DOCX Report** | Populate KBB template with variants + interpretation | `_annotated.csv` + `_tiered_report.csv` | `{ID}_clinical_report.docx` |
+| **Run Full Pipeline** | All 3 steps sequentially for each VCF | `.vcf` files | All outputs above |
+
 ## Repository Structure
 
 ```
 ctDNA/
+├── ctdna_gui.py                 # Windows GUI application
 ├── annotate_vcf.py              # VEP annotation + tiering (main script)
 ├── reformat_tiers.py            # Generate tiered report CSV
 ├── .claude/
