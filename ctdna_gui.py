@@ -382,17 +382,29 @@ class PipelineApp(ttk.Frame):
         row2 = ttk.Frame(frame)
         row2.pack(fill="x", pady=(4, 0))
 
+        n_actionable = len(ACTIONABLE_TIER3_GENES)
         self.tier3_actionable_cb = ttk.Checkbutton(
-            row2, text="Tier 3: Actionable / risk-stratifying genes only "
-                       "(KIT, XPO1, PIM1, BIRC3, EP300, KMT2C, FBXW7, BCOR)",
+            row2, text=f"Tier 3: Actionable / risk-stratifying genes only "
+                       f"({n_actionable} genes)",
             variable=self.tier3_actionable_var)
         self.tier3_actionable_cb.pack(side="left", padx=(24, 0))
 
+        self.tier3_detail_btn = ttk.Button(
+            row2, text="View list",
+            command=self._show_actionable_genes, width=8)
+        self.tier3_detail_btn.pack(side="left", padx=4)
+
     def _on_tier3_toggle(self):
-        if self.tier3_var.get():
-            self.tier3_actionable_cb.config(state="normal")
-        else:
-            self.tier3_actionable_cb.config(state="disabled")
+        state = "normal" if self.tier3_var.get() else "disabled"
+        self.tier3_actionable_cb.config(state=state)
+        self.tier3_detail_btn.config(state=state)
+
+    def _show_actionable_genes(self):
+        genes = sorted(ACTIONABLE_TIER3_GENES)
+        lines = [f"Actionable / Risk-Stratifying Tier 3 Genes ({len(genes)}):\n"]
+        for i in range(0, len(genes), 8):
+            lines.append(", ".join(genes[i:i + 8]))
+        messagebox.showinfo("Tier 3 Actionable Gene List", "\n".join(lines))
 
     def _sync_filter_config(self):
         """Push GUI filter settings to the worker before pipeline run."""

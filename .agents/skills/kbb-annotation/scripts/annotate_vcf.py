@@ -53,42 +53,135 @@ TIER1_2_GENES = {
 }
 
 # Tier 3 genes: broader cancer / lymphoma-associated genes with uncertain significance
+# Genes overlapping with TIER1_2_GENES will be evaluated at Tier 1/2 first;
+# only variants not meeting Tier 1/2 criteria fall through to Tier 3.
 TIER3_GENES = {
     # Chromatin / epigenetic
-    "KMT2A", "KMT2C", "SETD2", "NSD2", "WHSC1",
-    "ARID1B", "ARID2", "SMARCA4", "PBRM1",
+    "KMT2D", "CREBBP", "EP300", "EZH2", "ARID1A",
+    "ARID1B", "SMARCA4", "SMARCB1", "TET2", "DNMT3A",
+    "IDH2", "IDH1", "SETD2", "KDM6A", "KDM5C",
+    "KMT2A", "KMT2C", "KMT2E", "NSD2", "NSD1",
+    "ASXL1", "ASXL2", "BCOR", "BCORL1",
+    "CHD2", "CHD4", "ATRX", "HIST1H1E", "HIST1H1C", "BCL7A",
     # DNA repair / cell cycle
-    "ATR", "CHEK2", "BRCA1", "BRCA2", "CDK6",
+    "TP53", "ATM", "ATR", "CHEK1", "CHEK2",
+    "BRCA1", "BRCA2", "PALB2", "RAD51", "RAD51C", "RAD51D",
+    "FANCA", "FANCD2", "BLM", "WRN",
+    "MSH2", "MSH6", "MLH1", "PMS2", "POLE", "POLD1", "PARP1",
+    "CDKN2A", "CDKN2B", "RB1", "CCND1", "CCND2", "CCND3",
+    "CDK4", "CDK6", "E2F1", "MYC", "BCL2", "PTEN", "TP73",
     # RTK / signaling
-    "EGFR", "ERBB2", "ERBB3", "MET", "RET", "ROS1", "KIT", "PDGFRA",
+    "EGFR", "ERBB2", "ERBB3", "ERBB4",
+    "FGFR1", "FGFR2", "FGFR3",
+    "PDGFRA", "PDGFRB", "KIT", "MET", "FLT3",
+    "JAK1", "JAK2", "JAK3", "STAT3", "STAT5B",
+    "KRAS", "NRAS", "HRAS", "BRAF", "MAP2K1", "MAP2K2",
+    "PIK3CA", "PIK3CD", "PIK3R1", "AKT1", "AKT2", "AKT3", "MTOR",
+    "SYK", "LYN", "BLK", "BTK", "PLCG2",
+    "CARD11", "MYD88", "IRAK4", "TNFAIP3", "NFKBIA",
+    # Nuclear export
+    "XPO1",
     # Splicing
-    "U2AF1", "SRSF2", "ZRSR2",
-    # Tumor suppressors / signaling
-    "TSC1", "TSC2", "NF1", "NF2",
-    # Transcription factors / lymphoid development
-    "IKZF1", "PAX5", "EBF1", "RUNX1", "GATA3",
-    # Other lymphoma-associated
-    "XPO1", "MED12", "ITPKB", "NFKBIE",
-    "TRAF3", "MAP3K14", "MALT1",
-    "RHOA", "UBR5",
-    "PCLO", "P2RY8", "ZFP36L1", "DUSP2",
-    "HIST1H1E", "HIST1H1C", "HIST1H1B", "HIST1H1D",
+    "SF3B1", "SRSF2", "U2AF1", "U2AF2", "ZRSR2",
+    "PRPF8", "PRPF40B", "SF1",
+    "RBM10", "RBM15", "RBM15B",
+    "DDX3X", "DDX41",
+    "HNRNPK", "HNRNPA1", "HNRNPA2B1", "SFPQ",
+    "FUBP1", "WTAP", "LUC7L2", "PHF5A", "TCERG1", "EFTUD2",
 }
 
 # Tier 3 reportable whitelist: only actionable (therapeutic drug targets) or
 # risk-stratifying genes are included in the clinical report.
 # Other Tier 3 genes are annotated but excluded from tiered reports.
 ACTIONABLE_TIER3_GENES = {
-    # Actionable — FDA-approved or clinical trial drug targets
-    "KIT",      # imatinib, sunitinib, avapritinib
-    "XPO1",     # selinexor (XPOVIO) — FDA-approved for R/R DLBCL
-    "PIM1",     # PIM kinase inhibitors (AZD1208, SGI-1776)
-    "BIRC3",    # BTK inhibitors (ibrutinib)
-    "EP300",    # HDAC inhibitors, EZH2 inhibitors
-    # Risk stratification — prognostic markers in DLBCL
-    "KMT2C",    # epigenetic, prognostic in DLBCL
-    "FBXW7",    # poor prognosis, Notch/mTOR pathway
-    "BCOR",     # prognostic in hematologic malignancies
+    # --- Directly actionable: FDA-approved or late-stage trial drugs ---
+    # RTK / kinase inhibitors
+    "KIT",       # imatinib, sunitinib, avapritinib, ripretinib
+    "EGFR",      # erlotinib, gefitinib, osimertinib
+    "ERBB2",     # trastuzumab, T-DXd, pertuzumab
+    "ERBB3",     # pertuzumab (HER2/3), clinical trials
+    "FGFR1",     # erdafitinib, pemigatinib, futibatinib
+    "FGFR2",     # pemigatinib, futibatinib
+    "FGFR3",     # erdafitinib
+    "PDGFRA",    # imatinib, avapritinib
+    "MET",       # capmatinib, tepotinib
+    "FLT3",      # midostaurin, gilteritinib
+    # JAK/STAT
+    "JAK1",      # ruxolitinib, tofacitinib
+    "JAK2",      # ruxolitinib, fedratinib
+    "JAK3",      # tofacitinib
+    # RAS/RAF/MEK
+    "KRAS",      # sotorasib (G12C), adagrasib
+    "NRAS",      # MEK inhibitors (binimetinib, trametinib)
+    "BRAF",      # vemurafenib, dabrafenib + trametinib
+    "MAP2K1",    # trametinib, cobimetinib, selumetinib
+    "MAP2K2",    # MEK inhibitor resistance marker
+    # PI3K/AKT/mTOR
+    "PIK3CA",    # alpelisib
+    "PIK3CD",    # idelalisib, duvelisib
+    "PIK3R1",    # PI3K pathway activation marker
+    "AKT1",      # capivasertib
+    "MTOR",      # everolimus, temsirolimus
+    "PTEN",      # PI3K pathway activation, synthetic lethality
+    # BCR / NF-kB signaling (lymphoma-specific)
+    "BTK",       # ibrutinib, acalabrutinib, zanubrutinib
+    "PLCG2",     # BTK inhibitor resistance marker
+    "CARD11",    # BTK inhibitor resistance marker
+    "MYD88",     # ibrutinib sensitivity (L265P)
+    "IRAK4",     # IRAK4 inhibitors (emavusertib, trials)
+    "SYK",       # fostamatinib
+    # Epigenetic targets
+    "EZH2",      # tazemetostat (FDA-approved)
+    "IDH1",      # ivosidenib
+    "IDH2",      # enasidenib
+    # Cell cycle
+    "CDK4",      # palbociclib, ribociclib, abemaciclib
+    "CDK6",      # CDK4/6 inhibitors
+    # DNA repair → PARP inhibitors / IO
+    "BRCA1",     # olaparib, niraparib, rucaparib, talazoparib
+    "BRCA2",     # PARP inhibitors
+    "PALB2",     # PARP inhibitor sensitivity
+    "ATM",       # PARP inhibitor / ATR inhibitor sensitivity
+    "ATR",       # ATR inhibitors (ceralasertib, berzosertib, trials)
+    "CHEK1",     # CHK1 inhibitors (prexasertib, trials)
+    "CHEK2",     # PARP inhibitor sensitivity marker
+    "PARP1",     # PARP inhibitor biomarker
+    # MMR deficiency → immune checkpoint inhibitors
+    "MSH2",      # pembrolizumab (MSI-H), dostarlimab
+    "MSH6",      # MSI-H → immunotherapy
+    "MLH1",      # MSI-H → immunotherapy
+    "PMS2",      # MSI-H → immunotherapy
+    # Splicing targets
+    "SF3B1",     # H3B-8800 (spliceosome modulator, trials)
+    "SRSF2",     # spliceosome modulator sensitivity
+    "DDX3X",     # clinical trial targets
+    "DDX41",     # MDS/AML risk stratification
+    # Lymphoma-specific actionable
+    "XPO1",      # selinexor (XPOVIO) — FDA-approved for R/R DLBCL
+    "PIM1",      # PIM kinase inhibitors (AZD1208, SGI-1776)
+    "BIRC3",     # BTK inhibitor response marker
+    # --- Risk stratification: prognostic / diagnostic markers ---
+    "TP53",      # poor prognosis across cancers, APR-246 (eprenetapopt)
+    "MYC",       # aggressive biology, double-hit marker
+    "BCL2",      # venetoclax target, double-hit marker
+    "KMT2D",     # key epigenetic driver, prognostic in DLBCL
+    "CREBBP",    # epigenetic, prognostic in FL/DLBCL
+    "EP300",     # HDAC/EZH2 inhibitor sensitivity
+    "KMT2C",     # epigenetic, prognostic in DLBCL
+    "ARID1A",    # SWI/SNF, potential IO sensitivity marker
+    "DNMT3A",    # CHIP, prognostic in AML/MDS
+    "TET2",      # CHIP, prognostic
+    "ASXL1",     # prognostic in MDS/MPN/AML
+    "SETD2",     # epigenetic, prognostic
+    "BCOR",      # prognostic in hematologic malignancies
+    "FBXW7",     # poor prognosis, Notch/mTOR pathway
+    "CDKN2A",    # prognostic, CDK4/6 inhibitor sensitivity
+    "RB1",       # tumor suppressor, cell cycle prognostic
+    "CCND1",     # MCL marker, prognostic
+    "STAT3",     # JAK/STAT activation marker
+    "STAT5B",    # JAK/STAT activation marker
+    "TNFAIP3",   # NF-kB pathway, ABC-DLBCL marker
+    "NFKBIA",    # NF-kB pathway activation marker
 }
 
 # Consequence severity for tiering
