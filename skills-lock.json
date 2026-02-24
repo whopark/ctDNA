@@ -1,0 +1,120 @@
+{
+  "version": 1,
+  "skills": {
+    "Claude Code Guide": {
+      "source": "davila7/claude-code-templates",
+      "sourceType": "github",
+      "computedHash": "ae35e8416f3c1e20c03e0db59413e0e4cbdf9188c7b2dfbc4ab844a4e53dcc90"
+    },
+    "agent-management": {
+      "source": "davila7/claude-code-templates",
+      "sourceType": "github",
+      "computedHash": "43e5e08ac38bf1527f0773e993ad2b8bb1806ac4ea2de7cb1e476acb84e7d19f"
+    },
+    "app-builder": {
+      "source": "davila7/claude-code-templates",
+      "sourceType": "github",
+      "computedHash": "81e6bfdc83f5b2e2e46e0c602ca1d041214502c9a00cf11c4b08b92310324fd6"
+    },
+    "backend-dev-guidelines": {
+      "source": "davila7/claude-code-templates",
+      "sourceType": "github",
+      "computedHash": "53e108e5a880d348f35a4428217382ce538449193dd098a1cdee2d41151ed28a"
+    },
+    "brainstorming": {
+      "source": "davila7/claude-code-templates",
+      "sourceType": "github",
+      "computedHash": "271e0e8e1cd5a16386d52bca0970579b4df145f8c1ae650eb31231aac726a785"
+    },
+    "context-window-management": {
+      "source": "davila7/claude-code-templates",
+      "sourceType": "github",
+      "computedHash": "2bd3e8ea39f1e11333b5d5d598828d23f735a0732d671ae6e76f0d7b2d5d49a1"
+    },
+    "context7-auto-research": {
+      "source": "davila7/claude-code-templates",
+      "sourceType": "github",
+      "computedHash": "7a98ef6cd5844fca9a985ed5ce91c2d8882db0bc27657a44affacc41f718d4d9"
+    },
+    "conversation-memory": {
+      "source": "davila7/claude-code-templates",
+      "sourceType": "github",
+      "computedHash": "bc9a3a434e3d92e9803cc2f5bdea87ab07dd4f06d346918db269c3044fd91144"
+    },
+    "crewai-multi-agent": {
+      "source": "davila7/claude-code-templates",
+      "sourceType": "github",
+      "computedHash": "487d8dfd3f3cbe34786c0e671fe5898969b617213d6395ccdad87e4d64429d46"
+    },
+    "dspy": {
+      "source": "davila7/claude-code-templates",
+      "sourceType": "github",
+      "computedHash": "6cc629ec64e10cc2794aab0ead2a23dd7528089edd03355dd632680c30da1a3b"
+    },
+    "huggingface-accelerate": {
+      "source": "davila7/claude-code-templates",
+      "sourceType": "github",
+      "computedHash": "fde0ed50e08a97a04a98764c211c58ff0dca6bf1b1f893c6add75375d64a61d7"
+    },
+    "knowledge-distillation": {
+      "source": "davila7/claude-code-templates",
+      "sourceType": "github",
+      "computedHash": "83570ac666d6cd29245341531446be1227fb5ae223f7f4bd67f41e3cc15ce7bb"
+    },
+    "memory-search": {
+      "source": "davila7/claude-code-templates",
+      "sourceType": "github",
+      "computedHash": "663d828df017127312725ddd9017f50ec034159a5913d9da5fc1fb1a21c12392"
+    },
+    "mermaid-diagrams": {
+      "source": "davila7/claude-code-templates",
+      "sourceType": "github",
+      "computedHash": "8f59e878e4ecdb6205c968dc6eb92aca1d1d5c949ce4dfd8cef06208bffbc10b"
+    },
+    "ml-paper-writing": {
+      "source": "davila7/claude-code-templates",
+      "sourceType": "github",
+      "computedHash": "e7295298be17d946ba02d98d855060861f48dc0f20537c99e70d10ca8f8e9f74"
+    },
+    "parallel-agents": {
+      "source": "davila7/claude-code-templates",
+      "sourceType": "github",
+      "computedHash": "444cc0cfd4c4278610af56124f09e7eeebd5a895b90f8c61ad219fa4fc5d8192"
+    },
+    "perplexity": {
+      "source": "davila7/claude-code-templates",
+      "sourceType": "github",
+      "computedHash": "1d32fbce001646737afa8208adaae6e8b1b6c74bd85eae492a9b89901e8c1668"
+    },
+    "planning": {
+      "source": "davila7/claude-code-templates",
+      "sourceType": "github",
+      "computedHash": "c48c2a6914513ec956722cf89e2d72341a344d7ad8a5a3b5f7b9011bc317f214"
+    },
+    "prompt-engineer": {
+      "source": "davila7/claude-code-templates",
+      "sourceType": "github",
+      "computedHash": "8fdaa14384b7a83271e1a03bf0828627dd78525aa3c65ccb2566519623ad96ae"
+    },
+    "prompt-library": {
+      "source": "davila7/claude-code-templates",
+      "sourceType": "github",
+      "computedHash": "7439e23c8863eb415b1fb058d921ff8b0dd694d9e49fa281415ed3e36fae5c6a"
+    },
+    "pytorch-lightning": {
+      "source": "davila7/claude-code-templates",
+      "sourceType": "github",
+      "computedHash": "4518728be0825fd4ac8c93df26fbc45d6eb0f81ed2b556269f1e40bb4d98edc4"
+    },
+    "research-engineer": {
+      "source": "davila7/claude-code-templates",
+      "sourceType": "github",
+      "computedHash": "3a22603343abff2eb98cb88ef6cfb97d7e2fee4b88fc6e0b984e3914c446a720"
+    },
+    "kbb-annotation": {
+      "source": "local",
+      "sourceType": "local",
+      "computedHash": ""
+    }
+  }
+}
