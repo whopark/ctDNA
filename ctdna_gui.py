@@ -27,7 +27,7 @@ sys.path.insert(0, str(REPO_ROOT / ".claude"))
 from annotate_vcf import (
     parse_vcf, build_vep_input, query_vep_batch,
     extract_annotation, assign_tier, OUT_FIELDS, BATCH_SIZE,
-    ACTIONABLE_TIER3_GENES,
+    ACTIONABLE_TIER3_GENES, DRUG_TARGET_GENES, RISK_STRATIFICATION_GENES,
 )
 from reformat_tiers import parse_hgvsc, parse_hgvsp
 
@@ -67,6 +67,7 @@ class PipelineWorker:
         self.min_vaf = 0.01
         self.include_tiers = {"Tier 1", "Tier 2", "Tier 3"}
         self.tier3_actionable_only = True
+        self.actionable_genes = set(ACTIONABLE_TIER3_GENES)
 
     def post(self, msg_type, data):
         self.msg_queue.put((msg_type, data))
@@ -137,7 +138,7 @@ class PipelineWorker:
                 if row["tier"] not in include_tiers:
                     continue
                 if tier3_actionable and row["tier"] == "Tier 3" \
-                        and row.get("gene", "NA") not in ACTIONABLE_TIER3_GENES:
+                        and row.get("gene", "NA") not in self.actionable_genes:
                     continue
                 writer.writerow(row)
                 written += 1
@@ -179,7 +180,7 @@ class PipelineWorker:
             if float(r["sample_af"]) < min_vaf:
                 continue
             if tier3_actionable and r["tier"] == "Tier 3" \
-                    and r["gene"] not in ACTIONABLE_TIER3_GENES:
+                    and r["gene"] not in self.actionable_genes:
                 continue
             reportable.append(r)
         reportable.sort(key=lambda r: (tier_order[r["tier"]], -float(r["sample_af"])))
@@ -244,8 +245,8 @@ class PipelineApp(ttk.Frame):
         super().__init__(master)
         self.master = master
         master.title("ctDNA Annotation Pipeline — Lymphoma Panel")
-        master.geometry("960x860")
-        master.minsize(820, 720)
+        master.geometry("960x920")
+        master.minsize(820, 780)
 
         self.vcf_files = []
         self.output_dir = tk.StringVar()
@@ -378,33 +379,105 @@ class PipelineApp(ttk.Frame):
             textvariable=self.min_vaf_var, width=6, format="%.1f")
         self.vaf_spinbox.pack(side="left", padx=4)
 
-        # Row 2: Tier 3 actionable-only option
+        # Row 2: Tier 3 filter toggle + reset
         row2 = ttk.Frame(frame)
         row2.pack(fill="x", pady=(4, 0))
 
-        n_actionable = len(ACTIONABLE_TIER3_GENES)
         self.tier3_actionable_cb = ttk.Checkbutton(
-            row2, text=f"Tier 3: Actionable / risk-stratifying genes only "
-                       f"({n_actionable} genes)",
-            variable=self.tier3_actionable_var)
+            row2, text="Tier 3: Report only genes in lists below",
+            variable=self.tier3_actionable_var,
+            command=self._on_actionable_toggle)
         self.tier3_actionable_cb.pack(side="left", padx=(24, 0))
 
-        self.tier3_detail_btn = ttk.Button(
-            row2, text="View list",
-            command=self._show_actionable_genes, width=8)
-        self.tier3_detail_btn.pack(side="left", padx=4)
+        self.tier3_reset_btn = ttk.Button(
+            row2, text="Reset Defaults",
+            command=self._reset_gene_lists, width=13)
+        self.tier3_reset_btn.pack(side="right", padx=4)
+
+        # Row 3: Two editable gene list panels side by side
+        self.gene_lists_frame = ttk.Frame(frame)
+        self.gene_lists_frame.pack(fill="x", pady=(6, 0))
+
+        # Left: Actionable Drug Targets
+        left = ttk.Frame(self.gene_lists_frame)
+        left.pack(side="left", fill="both", expand=True, padx=(24, 4))
+
+        left_header = ttk.Frame(left)
+        left_header.pack(fill="x")
+        ttk.Label(left_header, text="Actionable Drug Targets",
+                  font=("Segoe UI", 8, "bold")).pack(side="left")
+        self.drug_count_label = ttk.Label(
+            left_header, text="", font=("Segoe UI", 8), foreground="#555")
+        self.drug_count_label.pack(side="right")
+
+        self.drug_text = tk.Text(left, height=3, width=40,
+                                 font=("Consolas", 8), wrap="word",
+                                 borderwidth=1, relief="sunken")
+        self.drug_text.pack(fill="x", pady=(2, 0))
+        self.drug_text.bind("<KeyRelease>", lambda e: self._update_gene_counts())
+
+        # Right: Risk Stratification
+        right = ttk.Frame(self.gene_lists_frame)
+        right.pack(side="left", fill="both", expand=True, padx=(4, 0))
+
+        right_header = ttk.Frame(right)
+        right_header.pack(fill="x")
+        ttk.Label(right_header, text="Risk Stratification",
+                  font=("Segoe UI", 8, "bold")).pack(side="left")
+        self.risk_count_label = ttk.Label(
+            right_header, text="", font=("Segoe UI", 8), foreground="#555")
+        self.risk_count_label.pack(side="right")
+
+        self.risk_text = tk.Text(right, height=3, width=40,
+                                 font=("Consolas", 8), wrap="word",
+                                 borderwidth=1, relief="sunken")
+        self.risk_text.pack(fill="x", pady=(2, 0))
+        self.risk_text.bind("<KeyRelease>", lambda e: self._update_gene_counts())
+
+        # Populate defaults
+        self._populate_gene_texts(DRUG_TARGET_GENES, RISK_STRATIFICATION_GENES)
+        self._on_actionable_toggle()
+
+    def _populate_gene_texts(self, drug_genes, risk_genes):
+        self.drug_text.delete("1.0", "end")
+        self.drug_text.insert("1.0", ", ".join(sorted(drug_genes)))
+        self.risk_text.delete("1.0", "end")
+        self.risk_text.insert("1.0", ", ".join(sorted(risk_genes)))
+        self._update_gene_counts()
+
+    def _parse_gene_text(self, text_widget):
+        raw = text_widget.get("1.0", "end").strip()
+        genes = set()
+        for token in raw.replace("\n", ",").replace(";", ",").split(","):
+            g = token.strip().upper()
+            if g:
+                genes.add(g)
+        return genes
+
+    def _update_gene_counts(self):
+        drug = self._parse_gene_text(self.drug_text)
+        risk = self._parse_gene_text(self.risk_text)
+        self.drug_count_label.config(text=f"({len(drug)} genes)")
+        self.risk_count_label.config(text=f"({len(risk)} genes)")
+
+    def _reset_gene_lists(self):
+        self._populate_gene_texts(DRUG_TARGET_GENES, RISK_STRATIFICATION_GENES)
 
     def _on_tier3_toggle(self):
         state = "normal" if self.tier3_var.get() else "disabled"
         self.tier3_actionable_cb.config(state=state)
-        self.tier3_detail_btn.config(state=state)
+        self.tier3_reset_btn.config(state=state)
+        self._set_gene_list_state(state)
 
-    def _show_actionable_genes(self):
-        genes = sorted(ACTIONABLE_TIER3_GENES)
-        lines = [f"Actionable / Risk-Stratifying Tier 3 Genes ({len(genes)}):\n"]
-        for i in range(0, len(genes), 8):
-            lines.append(", ".join(genes[i:i + 8]))
-        messagebox.showinfo("Tier 3 Actionable Gene List", "\n".join(lines))
+    def _on_actionable_toggle(self):
+        if self.tier3_actionable_var.get() and self.tier3_var.get():
+            self._set_gene_list_state("normal")
+        else:
+            self._set_gene_list_state("disabled")
+
+    def _set_gene_list_state(self, state):
+        for widget in (self.drug_text, self.risk_text, self.tier3_reset_btn):
+            widget.config(state=state)
 
     def _sync_filter_config(self):
         """Push GUI filter settings to the worker before pipeline run."""
@@ -418,6 +491,10 @@ class PipelineApp(ttk.Frame):
         self.worker.include_tiers = tiers
         self.worker.min_vaf = self.min_vaf_var.get() / 100.0
         self.worker.tier3_actionable_only = self.tier3_actionable_var.get()
+        # Build effective actionable set from editable text fields
+        drug = self._parse_gene_text(self.drug_text)
+        risk = self._parse_gene_text(self.risk_text)
+        self.worker.actionable_genes = drug | risk
 
     def _build_metadata_frame(self, parent):
         frame = ttk.LabelFrame(parent, text=" Patient Metadata (Optional) ",

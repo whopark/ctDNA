@@ -90,11 +90,12 @@ TIER3_GENES = {
     "FUBP1", "WTAP", "LUC7L2", "PHF5A", "TCERG1", "EFTUD2",
 }
 
-# Tier 3 reportable whitelist: only actionable (therapeutic drug targets) or
-# risk-stratifying genes are included in the clinical report.
-# Other Tier 3 genes are annotated but excluded from tiered reports.
-ACTIONABLE_TIER3_GENES = {
-    # --- Directly actionable: FDA-approved or late-stage trial drugs ---
+# ---- Tier 3 reportable whitelist ----
+# Split into two editable lists: drug targets and risk stratification.
+# Only genes in either list appear in clinical reports for Tier 3.
+
+# Actionable drug targets: FDA-approved or late-stage clinical trial agents
+DRUG_TARGET_GENES = {
     # RTK / kinase inhibitors
     "KIT",       # imatinib, sunitinib, avapritinib, ripretinib
     "EGFR",      # erlotinib, gefitinib, osimertinib
@@ -160,7 +161,10 @@ ACTIONABLE_TIER3_GENES = {
     "XPO1",      # selinexor (XPOVIO) — FDA-approved for R/R DLBCL
     "PIM1",      # PIM kinase inhibitors (AZD1208, SGI-1776)
     "BIRC3",     # BTK inhibitor response marker
-    # --- Risk stratification: prognostic / diagnostic markers ---
+}
+
+# Risk stratification: prognostic / diagnostic markers
+RISK_STRATIFICATION_GENES = {
     "TP53",      # poor prognosis across cancers, APR-246 (eprenetapopt)
     "MYC",       # aggressive biology, double-hit marker
     "BCL2",      # venetoclax target, double-hit marker
@@ -183,6 +187,9 @@ ACTIONABLE_TIER3_GENES = {
     "TNFAIP3",   # NF-kB pathway, ABC-DLBCL marker
     "NFKBIA",    # NF-kB pathway activation marker
 }
+
+# Combined whitelist used by pipeline filters
+ACTIONABLE_TIER3_GENES = DRUG_TARGET_GENES | RISK_STRATIFICATION_GENES
 
 # Consequence severity for tiering
 HIGH_IMPACT = {
