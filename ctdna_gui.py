@@ -63,6 +63,10 @@ class PipelineWorker:
     def __init__(self, msg_queue):
         self.msg_queue = msg_queue
         self.cancel_flag = threading.Event()
+        # Filter config — set by GUI before each run
+        self.min_vaf = 0.01
+        self.include_tiers = {"Tier 1", "Tier 2", "Tier 3"}
+        self.tier3_actionable_only = True
 
     def post(self, msg_type, data):
         self.msg_queue.put((msg_type, data))
@@ -105,7 +109,9 @@ class PipelineWorker:
             if inp:
                 result_by_input[inp] = r
 
-        MIN_VAF = 0.01  # 1% VAF threshold
+        min_vaf = self.min_vaf
+        include_tiers = self.include_tiers
+        tier3_actionable = self.tier3_actionable_only
         tier_counts = {"Tier 1": 0, "Tier 2": 0, "Tier 3": 0, "Tier 4": 0}
         matched = 0
         written = 0
@@ -125,15 +131,22 @@ class PipelineWorker:
                                  "hgvsp", "rsid", "max_pop_af", "clin_sig", "uniprot"]})
                 row["tier"] = assign_tier(row)
                 tier_counts[row["tier"]] += 1
-                # Filter: VAF >= 1%, exclude Tier 4, Tier 3 actionable only
-                if float(row["sample_af"]) >= MIN_VAF and row["tier"] != "Tier 4":
-                    if row["tier"] == "Tier 3" and row.get("gene", "NA") not in ACTIONABLE_TIER3_GENES:
-                        continue
-                    writer.writerow(row)
-                    written += 1
+                # Apply filters from configuration
+                if float(row["sample_af"]) < min_vaf:
+                    continue
+                if row["tier"] not in include_tiers:
+                    continue
+                if tier3_actionable and row["tier"] == "Tier 3" \
+                        and row.get("gene", "NA") not in ACTIONABLE_TIER3_GENES:
+                    continue
+                writer.writerow(row)
+                written += 1
 
+        vaf_pct = f"{min_vaf * 100:.1f}%"
+        tiers_str = "/".join(sorted(include_tiers))
         self.post("log", f"  Done! {matched}/{len(variants)} annotated, "
-                         f"{written} written (VAF>=1%, no Tier 4) → {out_path.name}")
+                         f"{written} written (VAF>={vaf_pct}, {tiers_str}) "
+                         f"→ {out_path.name}")
         self.post("tier_result", {
             "case_id": case_id,
             "tier_counts": tier_counts,
@@ -153,12 +166,22 @@ class PipelineWorker:
         with open(annotated_csv, encoding="utf-8") as fin:
             rows = list(csv.DictReader(fin))
 
-        MIN_VAF = 0.01  # 1% VAF threshold
+        min_vaf = self.min_vaf
+        include_tiers = self.include_tiers
+        tier3_actionable = self.tier3_actionable_only
         tier_order = {"Tier 1": 0, "Tier 2": 1, "Tier 3": 2}
-        reportable = [r for r in rows
-                      if r["tier"] in tier_order
-                      and float(r["sample_af"]) >= MIN_VAF
-                      and (r["tier"] != "Tier 3" or r["gene"] in ACTIONABLE_TIER3_GENES)]
+        reportable = []
+        for r in rows:
+            if r["tier"] not in tier_order:
+                continue
+            if r["tier"] not in include_tiers:
+                continue
+            if float(r["sample_af"]) < min_vaf:
+                continue
+            if tier3_actionable and r["tier"] == "Tier 3" \
+                    and r["gene"] not in ACTIONABLE_TIER3_GENES:
+                continue
+            reportable.append(r)
         reportable.sort(key=lambda r: (tier_order[r["tier"]], -float(r["sample_af"])))
 
         with open(out_path, "w", newline="", encoding="utf-8") as fout:
@@ -221,17 +244,26 @@ class PipelineApp(ttk.Frame):
         super().__init__(master)
         self.master = master
         master.title("ctDNA Annotation Pipeline — Lymphoma Panel")
-        master.geometry("960x780")
-        master.minsize(820, 650)
+        master.geometry("960x860")
+        master.minsize(820, 720)
 
         self.vcf_files = []
         self.output_dir = tk.StringVar()
+        self.batch_name = tk.StringVar()
         self.metadata_map = {}
         self.msg_queue = queue.Queue()
         self.worker = PipelineWorker(self.msg_queue)
 
         today = datetime.now().strftime("%m%d")
-        self.output_dir.set(str(REPO_ROOT / today))
+        self.output_dir.set(str(REPO_ROOT))
+        self.batch_name.set(today)
+
+        # Filter config variables
+        self.tier1_var = tk.BooleanVar(value=True)
+        self.tier2_var = tk.BooleanVar(value=True)
+        self.tier3_var = tk.BooleanVar(value=True)
+        self.tier3_actionable_var = tk.BooleanVar(value=True)
+        self.min_vaf_var = tk.DoubleVar(value=1.0)
 
         self._build_ui()
         self._redirect_stderr()
@@ -249,6 +281,7 @@ class PipelineApp(ttk.Frame):
         top.pack(fill="x")
         self._build_input_frame(top)
         self._build_output_frame(top)
+        self._build_filter_frame(top)
         self._build_metadata_frame(top)
         self._build_control_frame(top)
 
@@ -283,11 +316,96 @@ class PipelineApp(ttk.Frame):
         frame = ttk.LabelFrame(parent, text=" Output Settings ", padding=8)
         frame.pack(fill="x", padx=10, pady=2)
 
-        ttk.Label(frame, text="Output Directory:").pack(side="left")
-        ttk.Entry(frame, textvariable=self.output_dir,
-                  width=55).pack(side="left", padx=4, fill="x", expand=True)
-        ttk.Button(frame, text="Browse...",
+        row1 = ttk.Frame(frame)
+        row1.pack(fill="x")
+        ttk.Label(row1, text="Base Directory:").pack(side="left")
+        ttk.Entry(row1, textvariable=self.output_dir,
+                  width=45).pack(side="left", padx=4, fill="x", expand=True)
+        ttk.Button(row1, text="Browse...",
                    command=self._browse_output).pack(side="right")
+
+        row2 = ttk.Frame(frame)
+        row2.pack(fill="x", pady=(4, 0))
+        ttk.Label(row2, text="Batch Folder:").pack(side="left")
+        ttk.Entry(row2, textvariable=self.batch_name,
+                  width=20).pack(side="left", padx=4)
+        self.full_output_label = ttk.Label(
+            row2, text="", font=("Segoe UI", 8), foreground="#555555")
+        self.full_output_label.pack(side="left", padx=8)
+        self._update_output_label()
+        self.output_dir.trace_add("write", lambda *_: self._update_output_label())
+        self.batch_name.trace_add("write", lambda *_: self._update_output_label())
+
+    def _update_output_label(self):
+        base = self.output_dir.get()
+        batch = self.batch_name.get().strip()
+        if batch:
+            full = str(Path(base) / batch)
+        else:
+            full = base
+        self.full_output_label.config(text=f"→ {full}")
+
+    def _get_effective_output_dir(self):
+        base = self.output_dir.get()
+        batch = self.batch_name.get().strip()
+        if batch:
+            return str(Path(base) / batch)
+        return base
+
+    def _build_filter_frame(self, parent):
+        frame = ttk.LabelFrame(parent, text=" Filter Configuration ", padding=8)
+        frame.pack(fill="x", padx=10, pady=2)
+
+        # Row 1: Tier selection + VAF
+        row = ttk.Frame(frame)
+        row.pack(fill="x")
+
+        ttk.Label(row, text="Include Tiers:").pack(side="left")
+        ttk.Checkbutton(row, text="Tier 1", variable=self.tier1_var
+                        ).pack(side="left", padx=(8, 2))
+        ttk.Checkbutton(row, text="Tier 2", variable=self.tier2_var
+                        ).pack(side="left", padx=2)
+        ttk.Checkbutton(row, text="Tier 3", variable=self.tier3_var,
+                        command=self._on_tier3_toggle
+                        ).pack(side="left", padx=2)
+
+        sep = ttk.Separator(row, orient="vertical")
+        sep.pack(side="left", fill="y", padx=10)
+
+        ttk.Label(row, text="Min VAF (%):").pack(side="left")
+        self.vaf_spinbox = ttk.Spinbox(
+            row, from_=0.0, to=100.0, increment=0.5,
+            textvariable=self.min_vaf_var, width=6, format="%.1f")
+        self.vaf_spinbox.pack(side="left", padx=4)
+
+        # Row 2: Tier 3 actionable-only option
+        row2 = ttk.Frame(frame)
+        row2.pack(fill="x", pady=(4, 0))
+
+        self.tier3_actionable_cb = ttk.Checkbutton(
+            row2, text="Tier 3: Actionable / risk-stratifying genes only "
+                       "(KIT, XPO1, PIM1, BIRC3, EP300, KMT2C, FBXW7, BCOR)",
+            variable=self.tier3_actionable_var)
+        self.tier3_actionable_cb.pack(side="left", padx=(24, 0))
+
+    def _on_tier3_toggle(self):
+        if self.tier3_var.get():
+            self.tier3_actionable_cb.config(state="normal")
+        else:
+            self.tier3_actionable_cb.config(state="disabled")
+
+    def _sync_filter_config(self):
+        """Push GUI filter settings to the worker before pipeline run."""
+        tiers = set()
+        if self.tier1_var.get():
+            tiers.add("Tier 1")
+        if self.tier2_var.get():
+            tiers.add("Tier 2")
+        if self.tier3_var.get():
+            tiers.add("Tier 3")
+        self.worker.include_tiers = tiers
+        self.worker.min_vaf = self.min_vaf_var.get() / 100.0
+        self.worker.tier3_actionable_only = self.tier3_actionable_var.get()
 
     def _build_metadata_frame(self, parent):
         frame = ttk.LabelFrame(parent, text=" Patient Metadata (Optional) ",
@@ -558,8 +676,10 @@ class PipelineApp(ttk.Frame):
         if not self._validate_files():
             return
         self._disable_buttons()
+        self._sync_filter_config()
         self.worker.cancel_flag.clear()
         self.progress_var.set(0)
+        out = self._get_effective_output_dir()
 
         def worker():
             try:
@@ -572,7 +692,7 @@ class PipelineApp(ttk.Frame):
                     self.worker.post("log", "")
                     self.worker.post("log",
                         f"[{idx+1}/{total}] {Path(vcf).name}")
-                    self.worker.run_annotate(vcf, self.output_dir.get())
+                    self.worker.run_annotate(vcf, out)
                 self.worker.post("step_done", "annotate")
             except Exception as e:
                 self.worker.post("error", traceback.format_exc())
@@ -585,11 +705,12 @@ class PipelineApp(ttk.Frame):
         if not self._validate_files():
             return
         self._disable_buttons()
+        self._sync_filter_config()
         self.progress_var.set(0)
+        out = self._get_effective_output_dir()
 
         def worker():
             try:
-                out = self.output_dir.get()
                 total = len(self.vcf_files)
                 for idx, vcf in enumerate(self.vcf_files):
                     case_id = Path(vcf).stem
@@ -620,10 +741,10 @@ class PipelineApp(ttk.Frame):
             return
         self._disable_buttons()
         self.progress_var.set(0)
+        out = self._get_effective_output_dir()
 
         def worker():
             try:
-                out = self.output_dir.get()
                 total = len(self.vcf_files)
                 for idx, vcf in enumerate(self.vcf_files):
                     case_id = Path(vcf).stem
@@ -656,15 +777,27 @@ class PipelineApp(ttk.Frame):
         if not self._validate_files():
             return
         self._disable_buttons()
+        self._sync_filter_config()
         self.worker.cancel_flag.clear()
         self.progress_var.set(0)
+        out = self._get_effective_output_dir()
+        vaf_pct = f"{self.min_vaf_var.get():.1f}%"
+        tiers_str = []
+        if self.tier1_var.get():
+            tiers_str.append("T1")
+        if self.tier2_var.get():
+            tiers_str.append("T2")
+        if self.tier3_var.get():
+            t3 = "T3-actionable" if self.tier3_actionable_var.get() else "T3-all"
+            tiers_str.append(t3)
         self._append_log("=" * 60, tag="header")
-        self._append_log("Starting full pipeline", tag="header")
+        self._append_log(f"Starting full pipeline  "
+                         f"[VAF>={vaf_pct}  {'/'.join(tiers_str)}  "
+                         f"→ {Path(out).name}/]", tag="header")
         self._append_log("=" * 60, tag="header")
 
         def worker():
             try:
-                out = self.output_dir.get()
                 total = len(self.vcf_files)
                 for idx, vcf in enumerate(self.vcf_files):
                     if self.worker.cancel_flag.is_set():
@@ -772,7 +905,7 @@ class PipelineApp(ttk.Frame):
     # ---- Action Buttons ----
 
     def _open_output_folder(self):
-        folder = self.output_dir.get()
+        folder = self._get_effective_output_dir()
         if os.path.isdir(folder):
             os.startfile(folder)
         else:
@@ -780,7 +913,7 @@ class PipelineApp(ttk.Frame):
                 f"Directory does not exist yet:\n{folder}")
 
     def _open_latest_report(self):
-        folder = self.output_dir.get()
+        folder = self._get_effective_output_dir()
         if not os.path.isdir(folder):
             messagebox.showinfo("Info", "No output directory found.")
             return
