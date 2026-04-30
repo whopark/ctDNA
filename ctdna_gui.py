@@ -4,7 +4,7 @@ ctDNA Annotation Pipeline GUI — Lymphoma ctDNA Panel
 Windows tkinter application integrating:
   1. VEP annotation (annotate_vcf.py)
   2. Tiered report generation (reformat_tiers.py)
-  3. Clinical .docx report generation (generate_docx_reports.py)
+  3. Clinical .docx report generation (generate_clinical_reports.py)
 """
 
 import sys
@@ -24,6 +24,28 @@ REPO_ROOT = Path(__file__).parent.resolve()
 sys.path.insert(0, str(REPO_ROOT))
 sys.path.insert(0, str(REPO_ROOT / ".claude"))
 
+# Add user site-packages for python-docx (handles venv without docx installed)
+import site
+def _add_user_site_packages():
+    """Add user site-packages paths to find python-docx."""
+    try:
+        user_site = site.getusersitepackages()
+        if user_site and user_site not in sys.path:
+            sys.path.append(user_site)
+    except Exception:
+        pass
+    # Also try Windows Store Python paths (common on Windows 10/11)
+    home = Path.home()
+    win_store_patterns = [
+        home / "AppData/Local/Packages/PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0/LocalCache/local-packages/Python313/site-packages",
+        home / "AppData/Local/Packages/PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0/LocalCache/local-packages/Python312/site-packages",
+        home / "AppData/Local/Packages/PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0/LocalCache/local-packages/Python311/site-packages",
+    ]
+    for sp in win_store_patterns:
+        if sp.exists() and str(sp) not in sys.path:
+            sys.path.append(str(sp))
+_add_user_site_packages()
+
 from annotate_vcf import (
     parse_vcf, build_vep_input, query_vep_batch,
     extract_annotation, assign_tier, OUT_FIELDS, BATCH_SIZE,
@@ -32,11 +54,21 @@ from annotate_vcf import (
 from reformat_tiers import parse_hgvsc, parse_hgvsp
 
 try:
-    import generate_docx_reports as gdr
-    from generate_docx_reports import generate_report
+    import generate_clinical_reports as gdr
+    from generate_clinical_reports import generate_report
     HAS_DOCX = True
-except ImportError:
+    DOCX_ERROR = None
+except ImportError as _e:
     HAS_DOCX = False
+    DOCX_ERROR = str(_e)
+    gdr = None
+    generate_report = None
+except Exception as _e:
+    # Catch any other errors during import (e.g., template issues)
+    HAS_DOCX = False
+    DOCX_ERROR = f"{type(_e).__name__}: {_e}"
+    gdr = None
+    generate_report = None
 
 
 # ---------------------------------------------------------------------------
@@ -215,7 +247,9 @@ class PipelineWorker:
     def run_docx_report(self, case_id, tiered_csv, annotated_csv,
                         output_dir, metadata):
         if not HAS_DOCX:
-            self.post("error", "python-docx not installed. Skipping DOCX generation.")
+            self.post("error",
+                      f"Clinical report generator unavailable "
+                      f"({DOCX_ERROR}). Skipping DOCX generation.")
             return None
 
         gdr.CASES[case_id] = {
@@ -538,6 +572,18 @@ class PipelineApp(ttk.Frame):
                    command=self._save_metadata).grid(row=0, column=4,
                                                       rowspan=2, padx=8)
 
+        # Interpretation text area
+        interp_frame = ttk.Frame(frame)
+        interp_frame.pack(fill="x", pady=(4, 0))
+        ttk.Label(interp_frame, text="Interpretation:",
+                  font=("Segoe UI", 8)).pack(side="left", anchor="nw")
+        self.meta_interpretation = tk.Text(interp_frame, height=3, width=80,
+                                           font=("Malgun Gothic", 9),
+                                           wrap="word", borderwidth=1,
+                                           relief="sunken")
+        self.meta_interpretation.pack(side="left", fill="x", expand=True,
+                                       padx=4)
+
     def _build_control_frame(self, parent):
         frame = ttk.LabelFrame(parent, text=" Pipeline Control ", padding=8)
         frame.pack(fill="x", padx=10, pady=2)
@@ -633,9 +679,19 @@ class PipelineApp(ttk.Frame):
                    command=self._open_output_folder).pack(side="left", padx=2)
         ttk.Button(frame, text="Open Latest Report",
                    command=self._open_latest_report).pack(side="left", padx=2)
+        ttk.Button(frame, text="Update Knowledge Base",
+                   command=self._update_knowledge_base).pack(side="left", padx=2)
 
-        dep_text = "python-docx: installed" if HAS_DOCX else "python-docx: NOT installed (pip install python-docx)"
-        dep_color = "#007700" if HAS_DOCX else "#cc0000"
+        if HAS_DOCX:
+            dep_text = "clinical report generator: ready"
+            dep_color = "#007700"
+        else:
+            dep_text = (
+                f"clinical report generator: DISABLED ({DOCX_ERROR})"
+                if DOCX_ERROR
+                else "clinical report generator: DISABLED"
+            )
+            dep_color = "#cc0000"
         dep_label = ttk.Label(frame, text=dep_text,
                               font=("Segoe UI", 8), foreground=dep_color)
         dep_label.pack(side="right", padx=4)
@@ -698,16 +754,21 @@ class PipelineApp(ttk.Frame):
         self.meta_specimen.set(meta.get("specimen", "Peripheral Blood"))
         self.meta_test_date.set(
             meta.get("test_date", datetime.now().strftime("%Y-%m-%d")))
+        # Load interpretation text
+        self.meta_interpretation.delete("1.0", "end")
+        self.meta_interpretation.insert("1.0", meta.get("interpretation", ""))
 
     def _save_metadata(self):
         case_id = self.meta_file_var.get()
         if not case_id:
             return
+        interpretation = self.meta_interpretation.get("1.0", "end").strip()
         self.metadata_map[case_id] = {
             "patient": self.meta_patient.get(),
             "reg_no": self.meta_reg_no.get(),
             "specimen": self.meta_specimen.get(),
             "test_date": self.meta_test_date.get(),
+            "interpretation": interpretation,
         }
         self._append_log(f"Metadata saved for {case_id}", tag="success")
 
@@ -730,6 +791,7 @@ class PipelineApp(ttk.Frame):
                 "reg_no": reg_no,
                 "specimen": "Peripheral Blood",
                 "test_date": datetime.now().strftime("%Y-%m-%d"),
+                "interpretation": "",
             }
         # Load first file's metadata into fields
         if self.meta_file_var.get():
@@ -783,7 +845,7 @@ class PipelineApp(ttk.Frame):
                         f"[{idx+1}/{total}] {Path(vcf).name}")
                     self.worker.run_annotate(vcf, out)
                 self.worker.post("step_done", "annotate")
-            except Exception as e:
+            except Exception:
                 self.worker.post("error", traceback.format_exc())
                 self.worker.post("step_done", "annotate")
 
@@ -813,7 +875,7 @@ class PipelineApp(ttk.Frame):
                         (idx + 1, total, f"Tiering {case_id}"))
                     self.worker.run_tier_report(str(annotated), out)
                 self.worker.post("step_done", "tier")
-            except Exception as e:
+            except Exception:
                 self.worker.post("error", traceback.format_exc())
                 self.worker.post("step_done", "tier")
 
@@ -824,9 +886,13 @@ class PipelineApp(ttk.Frame):
         if not self._validate_files():
             return
         if not HAS_DOCX:
-            messagebox.showwarning("Missing Dependency",
-                "python-docx is not installed.\n"
-                "Run: pip install python-docx")
+            messagebox.showwarning(
+                "Clinical Report Generator Unavailable",
+                "The docx report generator could not be loaded:\n"
+                f"  {DOCX_ERROR}\n\n"
+                "Ensure generate_clinical_reports.py and template.docx "
+                "sit next to ctdna_gui.py, and that python-docx is "
+                "installed (pip install python-docx).")
             return
         self._disable_buttons()
         self.progress_var.set(0)
@@ -856,7 +922,7 @@ class PipelineApp(ttk.Frame):
                     self.worker.run_docx_report(
                         case_id, str(tiered), str(annotated), out, meta)
                 self.worker.post("step_done", "docx")
-            except Exception as e:
+            except Exception:
                 self.worker.post("error", traceback.format_exc())
                 self.worker.post("step_done", "docx")
 
@@ -920,7 +986,7 @@ class PipelineApp(ttk.Frame):
                             case_id, tiered, annotated, out, meta)
 
                 self.worker.post("pipeline_done", None)
-            except Exception as e:
+            except Exception:
                 self.worker.post("error", traceback.format_exc())
                 self.worker.post("pipeline_done", None)
 
@@ -993,6 +1059,52 @@ class PipelineApp(ttk.Frame):
 
     # ---- Action Buttons ----
 
+    def _update_knowledge_base(self):
+        """Scan existing *_clinical_report.docx files and merge learnings
+        into kb.json. Runs synchronously — it's a fast file scan."""
+        try:
+            from kb_update import scan_reports, update_kb
+        except Exception as e:
+            messagebox.showerror(
+                "Knowledge Base",
+                f"kb_update module unavailable:\n{e}\n\n"
+                "Ensure kb.py and kb_update.py live next to ctdna_gui.py "
+                "and python-docx is installed.")
+            return
+
+        # Default: scan both the repo root (for batch folders like 0325/)
+        # and the current effective output dir (for today's runs).
+        roots = {REPO_ROOT, Path(self._get_effective_output_dir())}
+        reports = scan_reports(list(roots))
+        if not reports:
+            messagebox.showinfo(
+                "Knowledge Base",
+                "No *_clinical_report.docx files found to ingest.")
+            return
+
+        self._append_log("=" * 60, tag="header")
+        self._append_log(
+            f"Updating knowledge base from {len(reports)} report(s)...",
+            tag="header")
+        self._append_log("=" * 60, tag="header")
+        try:
+            result = update_kb(
+                reports, kb_path=None, dry_run=False, verbose=False)
+        except Exception as e:
+            self._append_log(f"KB update failed: {e}", tag="error")
+            messagebox.showerror("Knowledge Base", f"Update failed:\n{e}")
+            return
+
+        summary = (
+            f"Scanned {result['reports_scanned']} report(s) | "
+            f"{result['variant_rows']} variant rows | "
+            f"+{result['therapeutics_added']} therapeutic entries | "
+            f"{result['interpretations']} interpretations | "
+            f"{result['tier_hints_changed']} tier hints changed"
+        )
+        self._append_log(summary, tag="success")
+        messagebox.showinfo("Knowledge Base", summary)
+
     def _open_output_folder(self):
         folder = self._get_effective_output_dir()
         if os.path.isdir(folder):
@@ -1035,6 +1147,7 @@ def main():
             break
 
     app = PipelineApp(root)
+    root.app = app  # keep a reference on root so GC doesn't collect the frame
     root.mainloop()
 
 
