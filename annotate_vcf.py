@@ -256,11 +256,18 @@ def assign_tier(row):
     is_common = pop_af is not None and pop_af > 0.01
 
     # Parse ClinVar
+    # ClinVar separates multiple submitter opinions with `|`, occasionally `/`.
+    # Tokenize so "pathogenic" matches only as a standalone token; substring
+    # matching would incorrectly classify a pure "likely_pathogenic" call as
+    # "pathogenic" and route it to Tier 1 instead of Tier 2. The `likely_benign`
+    # exclusion keeps conflicting-interpretation records (any submitter said
+    # likely_benign) out of Tier 1.
     clin_lower = clin_sig.lower() if clin_sig != "NA" else ""
-    has_pathogenic = "pathogenic" in clin_lower and "likely_benign" not in clin_lower
-    has_likely_path = "likely_pathogenic" in clin_lower
+    clin_tokens = {t.strip() for t in clin_lower.replace("/", "|").split("|") if t.strip()}
+    has_pathogenic = "pathogenic" in clin_tokens and "likely_benign" not in clin_tokens
+    has_likely_path = "likely_pathogenic" in clin_tokens
     is_benign = clin_lower in ("benign", "likely_benign", "benign|likely_benign")
-    has_any_pathogenic = "pathogenic" in clin_lower  # including mixed
+    has_any_pathogenic = "pathogenic" in clin_lower  # substring; covers any pathogenic signal incl. likely_pathogenic
 
     # Gene membership
     in_tier12 = gene in TIER1_2_GENES
