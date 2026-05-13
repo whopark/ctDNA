@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% block title %}Session {{ sess.id }} · ctDNA Sandbox{% endblock %}
+{% block content %}
+<section class="card">
+  <h2>Session <code>{{ sess.id }}</code></h2>
+  <p>State: <strong id="state-badge" class="state-{{ state }}">{{ state }}</strong></p>
+
+  {% if state == "uploaded" %}
+  <form
+    hx-post="/annotate/{{ sess.id }}"
+    hx-target="#progress"
+    hx-swap="innerHTML"
+  >
+    <button type="submit">Step 2 — Run annotation</button>
+  </form>
+  {% endif %}
+
+  <div id="progress">
+    {% include "_progress.html" %}
+  </div>
+</section>
+
+{% if state in ["tiered", "annotated", "report_ready"] %}
+<section class="card">
+  <h2>Step 2 — Tiered variants</h2>
+  {% if tiered_rows %}
+  <table>
+    <thead>
+      <tr>
+        <th>Tier</th><th>Gene</th><th>Transcript</th><th>Nucleotide</th><th>AA</th><th>% VAF</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in tiered_rows %}
+      <tr class="tier-{{ r['ASCO/AMP Classification'][-1] }}">
+        <td>{{ r['ASCO/AMP Classification'] }}</td>
+        <td>{{ r['Gene'] }}</td>
+        <td>{{ r['Canonical name'] }}</td>
+        <td>{{ r['Nucleotide change'] }}</td>
+        <td>{{ r['AA change'] }}</td>
+        <td>{{ r['% VAF'] }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p>No reportable Tier 1–3 variants in this VCF.</p>
+  {% endif %}
+</section>
+
+<section class="card">
+  <h2>Step 3 — Case metadata</h2>
+  <p>
+    Fields below populate Table 0 (patient header) and Table 15 (signatures)
+    in the DOCX. Leave any field blank — the report tolerates empties.
+  </p>
+  <form
+    hx-post="/meta/{{ sess.id }}"
+    hx-target="#meta-result"
+    hx-swap="innerHTML"
+  >
+    <div class="grid">
+      {% for key in meta_keys %}
+      <label>
+        {{ key }}
+        <input name="{{ key }}" value="{{ meta.get(key, '') }}" />
+      </label>
+      {% endfor %}
+      {% for key in list_meta_keys %}
+      <label>
+        {{ key }} (comma-separated)
+        <input name="{{ key }}" value="{{ (meta.get(key, []) or []) | join(', ') }}" />
+      </label>
+      {% endfor %}
+    </div>
+    <button type="submit">Save meta</button>
+  </form>
+  <div id="meta-result"></div>
+
+  <hr />
+  <form
+    hx-post="/generate/{{ sess.id }}"
+    hx-target="#download"
+    hx-swap="innerHTML"
+  >
+    <button type="submit">Generate DOCX</button>
+  </form>
+  <div id="download">
+    {% if state == "report_ready" %}
+      {% include "_download.html" %}
+    {% endif %}
+  </div>
+</section>
+{% endif %}
+{% endblock %}

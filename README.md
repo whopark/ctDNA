@@ -441,12 +441,44 @@ ctDNA/
 └── skills-lock.json             # Installed skills manifest
 ```
 
+## Web UI (sandbox)
+
+> ⚠️ **Sandbox only — do not upload real PHI.** Railway / FastAPI runtime here is
+> not HIPAA-compliant and is intended for synthetic or de-identified test VCFs.
+
+A FastAPI + HTMX web front-end drives the full Step 1–3 pipeline through a browser:
+
+```bash
+pip install -r requirements.txt
+uvicorn web.app:app --reload
+```
+
+Open `http://127.0.0.1:8000`. Flow: **upload VCF → annotate (HTMX poll) → fill
+meta.json form → generate DOCX → download**. Sessions live under
+`$TMPDIR/ctdna-sessions/{id}/` with a 2 h TTL and never touch repo paths.
+
+### Deploy to Railway
+
+1. Push this repo to GitHub.
+2. In Railway, create a new project → **Deploy from GitHub** → select the repo.
+3. Railway auto-detects `railway.json` and builds via `Dockerfile`.
+4. Set `PORT` is unnecessary (Railway injects it); no other env vars required for
+   the sandbox.
+5. Open the public URL and confirm `/health` returns `{"status":"ok"}`.
+
+The Dockerfile copies pipeline sources + `0325/template.docx` and runs
+`uvicorn web.app:app --host 0.0.0.0 --port $PORT`. `.dockerignore` keeps all
+PHI-shaped artifacts (`*.vcf`, `meta.json`, `*_annotated.csv`,
+`*_tiered_report.csv`, `*_clinical_report.docx`) out of the image.
+
 ## Dependencies
 
-- **Python 3.8+**
+- **Python 3.8+** (Docker image pins 3.12-slim)
 - `requests` — Ensembl VEP REST API calls
-- `python-docx` — Clinical report .docx generation (optional, for Step 3)
+- `python-docx` — Clinical report .docx generation (Step 3)
+- `PyYAML` — Interpretations YAML loader
 - `tkinter` — GUI (included with standard Python on Windows)
+- Web UI: `fastapi`, `uvicorn[standard]`, `jinja2`, `python-multipart`
 
 ## References
 

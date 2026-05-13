@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card">
+  <h2>Step 1 — Upload VCF</h2>
+  <p>
+    GRCh37 VCFv4.2 with <code>AD</code> and <code>DP</code> in the INFO field.
+    The pipeline will run VEP annotation, AMP/ASCO/CAP tiering, and produce
+    a Korean-language DOCX clinical report.
+  </p>
+  <form method="post" action="/upload" enctype="multipart/form-data">
+    <label for="vcf">VCF file (max 50 MB)</label>
+    <input id="vcf" name="vcf" type="file" accept=".vcf" required />
+    <button type="submit">Upload &amp; start session</button>
+  </form>
+  <details>
+    <summary>What happens next?</summary>
+    <ol>
+      <li>VEP REST batches (200 variants/request) → tier each row</li>
+      <li>Filter to Tier 1–3, VAF ≥ 1%, actionable Tier 3 genes only</li>
+      <li>Fill <code>meta.json</code> (patient, dates, signatures)</li>
+      <li>Render DOCX from <code>template.docx</code> &amp; download</li>
+    </ol>
+  </details>
+</section>
+{% endblock %}

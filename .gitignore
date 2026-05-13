@@ -28,6 +28,11 @@ __pycache__/
 # Already-committed files under 0224/, 0325/ are pre-existing repo state and are
 # NOT auto-removed by this rule; new outputs are excluded going forward.
 **/*_clinical_report.docx
+**/*_clinical_report_*.docx
 **/*_annotated.csv
 **/*_tiered_report.csv
 **/*.vcf
+
+# Local test artifacts and tooling
+.coverage
+htmlcov/

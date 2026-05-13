@@ -1,0 +1,45 @@
+.git
+.gitignore
+.github
+.venv
+__pycache__
+**/__pycache__
+*.pyc
+.pytest_cache
+.mypy_cache
+.coverage
+htmlcov
+
+# Batch case data (PHI-shaped) — keep out of images
+0224
+0325/01-*
+0325/02-*
+0325/03-*
+0325/04-*
+0325/05-*
+
+# Dev tooling
+.claude
+.codex
+.agents
+.autopus
+docs
+
+# Patient-shaped artifacts (the .gitignore patterns)
+**/meta.json
+**/*_clinical_report.docx
+**/*_annotated.csv
+**/*_tiered_report.csv
+**/*.vcf
+
+# Tests + planning
+tests
+DESIGN.md
+ARCHITECTURE.md
+CHANGELOG.md
+
+# Editor / OS
+.vscode
+.idea
+.DS_Store
+Thumbs.db

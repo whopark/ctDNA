@@ -1,0 +1,24 @@
+{# Progress partial: HTMX polls /progress/{sid} every 2s until state is terminal. #}
+<div
+  class="progress"
+  {% if state == "annotating" %}
+  hx-get="/progress/{{ sess.id }}"
+  hx-trigger="every 2s"
+  hx-target="#progress"
+  hx-swap="innerHTML"
+  {% endif %}
+>
+  <p>State: <strong class="state-{{ state }}">{{ state }}</strong></p>
+  {% if log_tail %}
+  <pre class="log">{% for line in log_tail %}{{ line }}
+{% endfor %}</pre>
+  {% endif %}
+  {% if state == "tiered" or state == "report_ready" %}
+  <p class="ok">
+    Annotation complete. Refresh page to see the tiered variants and metadata form.
+    <a href="/session/{{ sess.id }}">Refresh →</a>
+  </p>
+  {% elif state == "failed" %}
+  <p class="err">Pipeline failed — see log above. <a href="/session/{{ sess.id }}">Refresh</a></p>
+  {% endif %}
+</div>
