@@ -29,6 +29,8 @@ __pycache__/
 # NOT auto-removed by this rule; new outputs are excluded going forward.
 **/*_clinical_report.docx
 **/*_clinical_report_*.docx
+**/*_clinical_report.md
+**/*_clinical_report_*.md
 **/*_annotated.csv
 **/*_tiered_report.csv
 **/*.vcf
