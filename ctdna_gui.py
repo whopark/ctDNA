@@ -54,6 +54,57 @@ from annotate_vcf import (
 from reformat_tiers import parse_hgvsc, parse_hgvsp
 
 try:
+    from case_meta import write_meta_scaffold, load_case_meta, META_KEYS
+    HAS_CASE_META = True
+except ImportError:
+    HAS_CASE_META = False
+    write_meta_scaffold = None
+    load_case_meta = None
+    META_KEYS = []
+
+
+def _prefill_meta_from_gui(meta_path, gui_metadata):
+    """Merge GUI-collected metadata into meta.json, preserving operator edits.
+
+    Maps the GUI's 5 legacy keys (patient, reg_no, specimen, test_date,
+    interpretation) to the new META_KEYS schema. Only writes a field when
+    the corresponding meta.json value is currently empty — never clobbers
+    operator-edited PHI. Interpretation field is NOT persisted to
+    meta.json (the new architecture stores interpretation text in
+    interpretations.yaml, edited separately).
+    """
+    import json
+    from pathlib import Path
+    if not meta_path or not Path(meta_path).exists() or not gui_metadata:
+        return
+    try:
+        with open(meta_path, encoding="utf-8") as f:
+            data = json.load(f)
+    except (json.JSONDecodeError, OSError):
+        return
+    if not isinstance(data, dict):
+        return
+    # GUI key → meta_key mapping (interpretation has no meta.json target)
+    mapping = {
+        "patient": "patient_name",
+        "reg_no": "reg_no",
+        "specimen": "specimen_type",
+        "test_date": "test_date",
+    }
+    changed = False
+    for gui_key, meta_key in mapping.items():
+        gui_val = gui_metadata.get(gui_key)
+        if gui_val and not data.get(meta_key):
+            data[meta_key] = gui_val
+            changed = True
+    if changed:
+        try:
+            with open(meta_path, "w", encoding="utf-8") as f:
+                json.dump(data, f, ensure_ascii=False, indent=2)
+        except OSError:
+            pass
+
+try:
     import generate_clinical_reports as gdr
     from generate_clinical_reports import generate_report
     HAS_DOCX = True
@@ -252,18 +303,24 @@ class PipelineWorker:
                       f"({DOCX_ERROR}). Skipping DOCX generation.")
             return None
 
-        gdr.CASES[case_id] = {
-            "patient": metadata.get("patient", ""),
-            "reg_no": metadata.get("reg_no", ""),
-            "specimen": metadata.get("specimen", "Peripheral Blood"),
-            "test_date": metadata.get("test_date",
-                                      datetime.now().strftime("%Y-%m-%d")),
-        }
-        if metadata.get("interpretation"):
-            gdr.INTERPRETATIONS[case_id] = metadata["interpretation"]
-
         case_dir = Path(output_dir) / case_id
         case_dir.mkdir(parents=True, exist_ok=True)
+
+        # @AX:NOTE [AUTO] SPEC-REPORT-001 REQ-4: write meta.json scaffold so the
+        # operator has a per-case PHI container to fill in. HAS_CASE_META guard
+        # provides graceful degradation when the case_meta module is unavailable.
+        # generate_report() loads meta.json internally and surfaces its own
+        # warnings to stderr — no need to duplicate that load here.
+        if HAS_CASE_META and metadata:
+            try:
+                meta_path = write_meta_scaffold(case_dir, case_id)
+                # Pre-fill scaffold from GUI metadata if this is a fresh write
+                # (write_meta_scaffold is idempotent — it only writes when absent)
+                _prefill_meta_from_gui(meta_path, metadata)
+            except OSError as e:
+                self.post("log",
+                    f"[WARNING] meta.json scaffold write failed for {case_id}: {e}")
+
         output_path = str(case_dir / f"{case_id}_clinical_report.docx")
 
         generate_report(case_id, tiered_csv, annotated_csv, output_path)

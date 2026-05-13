@@ -218,6 +218,17 @@ pip install requests python-docx
 
 **Requirements**: Python 3.8+, Windows 10/11 (GUI uses tkinter + `os.startfile`)
 
+### Patient meta and interpretation files (SPEC-REPORT-001)
+
+- `interpretations.yaml` — case-id to clinical interpretation text mapping. Resolution: exact case_id → prefix match → KB fallback → empty. Edit to add new cases without touching source.
+- `{case_dir}/meta.json` — per-case patient/specimen/signatory metadata; auto-generated as a blank scaffold by the GUI when a new case folder is created. Contains PHI (patient_name, birth_date, reg_no, ordering_doctor) and is git-ignored by default.
+
+Additional dependency: `pyyaml` (>=6.0). Install with:
+
+```bash
+pip install pyyaml
+```
+
 ### 2. Running the GUI
 
 ```bash

@@ -1,0 +1,76 @@
+# SPEC-REPORT-001 — case_id -> clinical interpretation text mapping.
+# Keys can be exact case_id ("01-JJH_10679562") or a prefix ("01-").
+# Resolution order in interpretations_loader.resolve_interpretation:
+#   1. yaml exact match
+#   2. yaml longest-prefix match
+#   3. kb_map fallback (kb.py KB_INTERPRETATIONS)
+#   4. empty string
+
+"01-": |
+  MYD88 p.Leu273Pro (c.818T>C, VAF 12.93%) pathogenic 변이가 검출되었습니다. MYD88 L265P/L273P 변이는 ABC-DLBCL (activated B-cell type)의 가장 특징적인 변이로, 약 30%의 ABC-DLBCL에서 발견됩니다. MYD88 변이 양성 DLBCL은 BTK inhibitor (ibrutinib)에 대한 반응률이 높은 것으로 보고됩니다 (Wilson et al., Nat Med. 2015).
+
+  CD79B p.Tyr197Ser (VAF 19.55%) 변이가 동시 검출되었습니다. MYD88 + CD79B 동시 변이는 MCD (MYD88/CD79B double-mutant) molecular subtype을 정의하며, BTK inhibitor에 대한 반응률이 특히 높습니다 (약 80% ORR, Schmitz et al., NEJM 2018).
+
+  PIM1에서 다수의 missense 변이 (9개)가 검출되었으며, 이는 aberrant somatic hypermutation (aSHM)의 결과로 해석됩니다. PIM1 hypermutation은 ABC-DLBCL에서 흔히 관찰됩니다.
+
+  NOTCH2 frameshift (p.Pro6ArgfsTer27, VAF 13.68%), CARD11 p.Ala630Pro (VAF 10.35%), KMT2D 변이 클러스터, B2M frameshift (p.Thr24LeufsTer27, VAF 7.56%)가 검출되었습니다. B2M 변이는 MHC class I 발현 저하로 인한 면역 회피 기전에 관여합니다.
+
+  종합적으로 MYD88 + CD79B 동시 변이, PIM1 hypermutation, NOTCH2/CARD11 변이 패턴은 ABC-DLBCL (MCD subtype)에 부합하며, BTK inhibitor 기반 치료의 적응증이 됩니다.
+
+"02-": |
+  본 검체에서 Tier 1 변이는 검출되지 않았으나, 다수의 Tier 2 드라이버 변이가 존재합니다.
+
+  PIM1에서 11개의 missense 및 nonsense 변이가 검출되었으며, 높은 VAF (최대 86.04%)를 보입니다. 이는 aberrant somatic hypermutation (aSHM)의 전형적인 패턴으로, DLBCL의 발생 기전에 관여합니다.
+
+  GNA13에서 3개의 변이 (splice site, p.Lys61Arg, p.Gln27His)가 검출되었습니다 (VAF ~40%). GNA13 변이는 GCB-DLBCL의 약 25%에서 발견되며, germinal center confinement 결함과 관련됩니다.
+
+  MYC p.Arg80Gly (VAF 33.37%) 변이가 검출되었습니다. MYC transactivation domain 변이는 단백질 안정성을 증가시켜 종양 발생에 기여합니다.
+
+  CD79B frameshift (p.Ile175LeufsTer35, VAF 32.74%), CD58 frameshift (p.Lys184AsnfsTer6, VAF 30.66%)가 검출되었습니다. CD58 기능 상실은 NK cell 매개 면역 회피 기전의 핵심입니다.
+
+  MEF2B 3개 변이 (p.Met1?, p.Leu269Val, p.Gln279Pro), CREBBP, ARID1A, BRAF p.Leu711Ile 변이가 동시 검출되었습니다.
+
+  GNA13 + MEF2B + PIM1 hypermutation 패턴은 GCB-DLBCL에 부합하며, MYC 변이와 CD58 면역 회피 기전이 동시에 존재합니다.
+
+"03-": |
+  MYD88 p.Leu273Pro (VAF 58.29%)가 주요 드라이버 변이로 검출되었습니다. 높은 VAF는 주요 종양 클론의 드라이버 변이임을 시사합니다.
+
+  TP53 p.Ile232Asn (VAF 1.35%)이 검출되었습니다. TP53 변이는 DLBCL의 예후 불량 인자로, 표준 R-CHOP 치료에 대한 반응률이 낮습니다.
+
+  ATM에서 2개의 truncating 변이 (p.Ser2192Ter VAF 7.27%, p.Ser421Ter VAF 3.89%)가 검출되어 biallelic ATM inactivation이 시사됩니다. ATM 기능 상실은 DNA damage response 결함을 유발하며, PARP inhibitor 감수성과 관련될 수 있습니다.
+
+  RB1 p.Glu746Ter (VAF 10.16%)는 tumor suppressor 기능 상실 변이입니다. 추가로 RB1 missense 변이가 다수 검출되어 RB1 pathway 비활성화가 확인됩니다.
+
+  CREBBP에서 2개의 splice/missense 변이 (c.4395-2A>T, p.Gln1491Lys)가 검출되었으며, KMT2D frameshift (p.Ala2119ArgfsTer36, VAF 8.50%)도 확인됩니다.
+
+  TET2 p.Gln341Ter (VAF 92.99%)는 매우 높은 VAF를 보이며, clonal hematopoiesis of indeterminate potential (CHIP) 기원 변이의 가능성을 고려해야 합니다.
+
+  MYD88 + TP53 + ATM + RB1 동시 변이는 고위험 ABC-DLBCL을 시사하며, BTK inhibitor 기반 치료와 DNA damage targeting 전략을 고려할 수 있습니다.
+
+"04-": |
+  ATM p.Glu2039Lys (VAF 3.06%)가 Tier 1 pathogenic 변이로 검출되었습니다. ATM kinase domain 변이는 DNA damage response 결함을 유발합니다.
+
+  TCF3 p.Gly431Ser (VAF 40.23%)는 E2A/TCF3 전사인자의 DNA binding domain 변이로, GCB-DLBCL에서 흔히 발견됩니다.
+
+  MEF2B p.Leu269Val (VAF 14.56%)는 4개 환자 모두에서 반복 검출되는 GCB-DLBCL 특이 hotspot 변이입니다. MEF2B는 BCL6 전사 활성화의 핵심 조절인자입니다.
+
+  NOTCH2 frameshift (p.Pro6ArgfsTer27, VAF 14.45%), CREBBP p.Val1956Gly (VAF 10.53%), TET2 p.Gln964Ter (VAF 5.74%)가 검출되었습니다. TET2 truncating 변이는 CHIP 기원 가능성을 고려해야 합니다.
+
+  STAT6 p.Gln65Pro (VAF 4.89%)는 JAK/STAT pathway 활성화 변이입니다.
+
+  KMT2C/KMT2D 변이 클러스터가 검출되어 히스톤 methylation 조절 이상이 확인됩니다.
+
+  TCF3, MEF2B, KMT2D 변이의 동시 검출은 GCB-DLBCL 분자 아형에 부합합니다. ATM 변이는 PARP inhibitor 감수성과 관련될 수 있습니다.
+
+"05-": |
+  TP53 p.Leu145Gln (VAF 43.25%)이 주요 드라이버 변이로 검출되었습니다. DNA binding domain 변이는 tumor suppressor 기능 상실을 유발하며, DLBCL의 독립적 예후 불량 인자입니다.
+
+  MYC에서 다수의 변이가 검출되었습니다: p.Glu54Asp (VAF 35.19%, Tier 1), p.Tyr89Asp (VAF 40.56%), p.Glu44Asp (VAF 37.11%), p.Gln49His (VAF 34.84%) 등. MYC N-terminal transactivation domain 변이 클러스터는 단백질 안정성 증가와 oncogenic activity 강화를 유발합니다.
+
+  ID3에서 splice site (c.300+1G>C, VAF 41.34%) 및 p.Leu64Phe (VAF 40.95%) 변이가 검출되었습니다. ID3 기능 상실 변이는 Burkitt lymphoma의 70%에서 발견되며, TCF3 활성을 증가시켜 MYC 발현을 촉진합니다.
+
+  RB1 p.Glu746Ter (VAF 10.84%) truncating 변이와 DDX3X에서 3개의 pathogenic 변이 (p.Gln14Ter, p.Arg488His, p.Pro274Ser)가 검출되었습니다. DDX3X는 RNA helicase로 번역 조절에 관여합니다.
+
+  GNA13 p.Val92Glu (VAF 60.80%), CCND3 변이 클러스터 (p.Val67Gly, splice, p.Cys73Gly)가 동시 검출되었습니다. CCND3 C-terminal 변이는 단백질 안정성 증가를 유발합니다.
+
+  TP53 + MYC + ID3 + CCND3 동시 변이 패턴은 high-grade B-cell lymphoma (HGBL) 또는 Burkitt-like lymphoma를 강력히 시사합니다. MYC rearrangement에 대한 FISH 검사가 권장되며, 고강도 항암요법 (DA-EPOCH-R 또는 CODOX-M/IVAC)을 고려해야 합니다.
