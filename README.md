@@ -222,6 +222,29 @@ pip install requests python-docx
 
 - `interpretations.yaml` — case-id to clinical interpretation text mapping. Resolution: exact case_id → prefix match → KB fallback → empty. Edit to add new cases without touching source.
 - `{case_dir}/meta.json` — per-case patient/specimen/signatory metadata; auto-generated as a blank scaffold by the GUI when a new case folder is created. Contains PHI (patient_name, birth_date, reg_no, ordering_doctor) and is git-ignored by default.
+- `meta.json.example` — committed schema template showing all 15 fields. Copy to `{case_dir}/meta.json` and fill, or let the GUI auto-create a scaffold on the next run.
+
+**meta.json schema** (one file per case folder):
+
+| Field | Type | Maps to | Notes |
+|---|---|---|---|
+| `patient_name` | str | Table 0 R0c1 (성명/성별) | PHI |
+| `sex` | str | (informational; not rendered) | "M" or "F" |
+| `birth_date` | str | Table 0 R2c1 (생년월일) | PHI; YYYY-MM-DD |
+| `reg_no` | str | Table 0 R1c1 (등록번호) | PHI |
+| `test_no` | str | Table 0 R0c5 (검사번호) | non-PHI test ID |
+| `ordering_doctor` | str | Table 0 R3c1 (의뢰의사) | PHI |
+| `specimen_type` | str | Table 0 R0c3 (검체 종류) | e.g., "Peripheral Blood" |
+| `specimen_state` | str | Table 0 R3c3 (검체상태) | e.g., "Adequate" |
+| `specimen_collected_at` | str | Table 0 R1c3 (검체 채취일) | YYYY-MM-DD |
+| `specimen_received_at` | str | Table 0 R2c3 (검체 접수일) | YYYY-MM-DD |
+| `test_date` | str | Table 0 R1c5 (검사일) | YYYY-MM-DD |
+| `preliminary_report_date` | str | Table 0 R2c5 (예비 보고일) | YYYY-MM-DD |
+| `final_report_date` | str | Table 0 R3c5 (최종 보고일) | YYYY-MM-DD |
+| `examiners` | list[str] (2) | Table 15 검사자 | site operator names |
+| `reporters` | list[str] (4) | Table 15 보고자 | site operator names |
+
+Missing/malformed `meta.json` → DOCX renders with empty cells + one warning per case (REQ-6 fail-soft).
 
 Additional dependency: `pyyaml` (>=6.0). Install with:
 

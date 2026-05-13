@@ -1,0 +1,17 @@
+{
+  "patient_name": "",
+  "sex": "",
+  "birth_date": "",
+  "reg_no": "",
+  "test_no": "",
+  "ordering_doctor": "",
+  "specimen_type": "Peripheral Blood",
+  "specimen_state": "",
+  "specimen_collected_at": "",
+  "specimen_received_at": "",
+  "test_date": "",
+  "preliminary_report_date": "",
+  "final_report_date": "",
+  "examiners": ["", ""],
+  "reporters": ["", "", "", ""]
+}
