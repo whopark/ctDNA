@@ -64,7 +64,7 @@ def fill_table14_qc_data(table, qc: dict) -> None:
     qc_pairs = [
         ("Mean Depth",   f"{qc['mean_depth']:.1f}x"),
         ("Median Depth", f"{qc['median_depth']:.1f}x"),
-        ("% DP >= 100x", f"{qc['pct_dp_ge_100x']:.1f}%"),
+        ("% DP ≥ 100x", f"{qc['pct_dp_ge_100x']:.1f}%"),
     ]
     for ri, (label, value) in enumerate(qc_pairs):
         set_cell_text(
