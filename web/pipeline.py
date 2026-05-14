@@ -6,7 +6,6 @@ and progress is streamed line-by-line to a log file the UI can poll via HTMX.
 from __future__ import annotations
 
 import csv
-import os
 import sys
 import time
 from pathlib import Path

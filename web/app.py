@@ -6,8 +6,8 @@ HIPAA-compliant and is intended for synthetic/de-identified inputs.
 from __future__ import annotations
 
 import json
-import os
 import threading
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
@@ -46,13 +46,20 @@ META_KEYS = [
 ]
 LIST_META_KEYS = ["examiners", "reporters"]
 
-app = FastAPI(title="ctDNA Sandbox", docs_url="/api/docs", redoc_url=None)
-app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
 
-
-@app.on_event("startup")
-def _purge_on_startup() -> None:
+@asynccontextmanager
+async def _lifespan(app: FastAPI):
     purge_stale()
+    yield
+
+
+app = FastAPI(
+    title="ctDNA Sandbox",
+    docs_url="/api/docs",
+    redoc_url=None,
+    lifespan=_lifespan,
+)
+app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
 
 
 @app.get("/health")
@@ -154,8 +161,8 @@ def generate(request: Request, sid: str) -> HTMLResponse:
             log=lambda m: append_log(sess, m),
         )
     except Exception as exc:  # pragma: no cover — surface to UI
-        append_log(sess, f"ERROR generating DOCX: {exc}")
-        raise HTTPException(500, f"Report generation failed: {exc}")
+        append_log(sess, f"ERROR generating DOCX: {exc!r}")
+        raise HTTPException(500, "Report generation failed; see session log")
     set_state(sess, "report_ready")
     return TEMPLATES.TemplateResponse(
         request, "_download.html", {"sess": sess},
