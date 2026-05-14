@@ -12,12 +12,12 @@ WORKDIR /app
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Pipeline source. The DOCX template lives under 0325/ (generate_clinical_reports
-# falls back to ./0325/template.docx when no root-level template.docx is present).
+# Pipeline source. template.docx (repo root) is the authoritative patient
+# DOCX template; _find_template() picks it up first. 0325/ alternative is
+# intentionally excluded from the image so the deploy has a single source.
 COPY annotate_vcf.py reformat_tiers.py generate_clinical_reports.py \
      case_meta.py qc_stats.py report_tables.py interpretations_loader.py \
-     interpretations.yaml ./
-COPY 0325/template.docx ./0325/template.docx
+     interpretations.yaml template.docx ./
 COPY web ./web
 
 EXPOSE 8000

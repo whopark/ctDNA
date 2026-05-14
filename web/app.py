@@ -5,13 +5,16 @@ HIPAA-compliant and is intended for synthetic/de-identified inputs.
 """
 from __future__ import annotations
 
+import base64
 import json
 import os
+import secrets
+import sys
 import threading
 from pathlib import Path
 
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
-from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
+from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from jinja2 import Environment, FileSystemLoader, select_autoescape
@@ -48,6 +51,43 @@ LIST_META_KEYS = ["examiners", "reporters"]
 
 app = FastAPI(title="ctDNA Sandbox", docs_url="/api/docs", redoc_url=None)
 app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
+
+# HTTP Basic Auth gate. Enabled iff both env vars are set — keeps local dev
+# unauthenticated while forcing credentials in any hosted deployment.
+_BASIC_AUTH_USER = os.environ.get("BASIC_AUTH_USER", "")
+_BASIC_AUTH_PASSWORD = os.environ.get("BASIC_AUTH_PASSWORD", "")
+_AUTH_ENABLED = bool(_BASIC_AUTH_USER and _BASIC_AUTH_PASSWORD)
+_AUTH_PUBLIC_PATHS = {"/health"}
+if not _AUTH_ENABLED:
+    print(
+        "WARNING: BASIC_AUTH_USER/BASIC_AUTH_PASSWORD unset — server is OPEN.",
+        file=sys.stderr,
+    )
+
+
+@app.middleware("http")
+async def _basic_auth_gate(request: Request, call_next):
+    if not _AUTH_ENABLED:
+        return await call_next(request)
+    path = request.url.path
+    if path in _AUTH_PUBLIC_PATHS or path.startswith("/static/"):
+        return await call_next(request)
+    header = request.headers.get("authorization", "")
+    if header[:6].lower() == "basic ":
+        try:
+            decoded = base64.b64decode(header[6:]).decode("utf-8")
+            user, _, pw = decoded.partition(":")
+            if secrets.compare_digest(user, _BASIC_AUTH_USER) and \
+                    secrets.compare_digest(pw, _BASIC_AUTH_PASSWORD):
+                return await call_next(request)
+        except (ValueError, UnicodeDecodeError):
+            pass
+    return Response(
+        status_code=401,
+        headers={"WWW-Authenticate": 'Basic realm="ctDNA Sandbox"'},
+        content="Unauthorized",
+        media_type="text/plain",
+    )
 
 
 @app.on_event("startup")
