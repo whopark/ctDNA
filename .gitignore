@@ -35,6 +35,12 @@ __pycache__/
 **/*_tiered_report.csv
 **/*.vcf
 
+# Patient DOCX template — the canonical template at repo root contains PHI
+# (real patient fill, byte-identical to 0325/template.docx). Pipeline only
+# relies on its table/cell structure and overwrites the populated cells;
+# the file is treated as a local-only operational artifact, not source.
+/template.docx
+
 # Local test artifacts and tooling
 .coverage
 htmlcov/
