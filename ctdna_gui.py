@@ -46,6 +46,19 @@ def _add_user_site_packages():
             sys.path.append(str(sp))
 _add_user_site_packages()
 
+# --- Frozen exe bootstrap: copy kb.json to writable location on first run ---
+try:
+    from frozen_path import is_frozen, data_path, writable_kb_path
+    if is_frozen():
+        import shutil
+        _writable_kb = writable_kb_path()
+        if not os.path.exists(_writable_kb):
+            _bundled_kb = data_path("kb.json")
+            if os.path.exists(_bundled_kb):
+                shutil.copy2(_bundled_kb, _writable_kb)
+except ImportError:
+    pass
+
 from annotate_vcf import (
     parse_vcf, build_vep_input, query_vep_batch,
     extract_annotation, assign_tier, OUT_FIELDS, BATCH_SIZE,

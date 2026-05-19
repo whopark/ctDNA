@@ -3,6 +3,10 @@
 __pycache__/
 *.py[cod]
 
+# PyInstaller build artifacts
+build/
+dist/
+
 # Autopus-ADK generated files
 .claude/rules/autopus/
 .claude/skills/autopus/

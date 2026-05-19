@@ -65,12 +65,22 @@ def _find_template(template_path: str | None = None) -> str:
 
     Priority order (REQ-9):
       1. explicit template_path argument (if it exists)
-      2. ./template.docx next to this script
-      3. ./0325/template.docx
-      4. parent-dir template.docx (legacy fallback)
+      2. PyInstaller frozen bundle (sys._MEIPASS)
+      3. ./template.docx next to this script
+      4. ./0325/template.docx
+      5. parent-dir template.docx (legacy fallback)
     """
     if template_path and os.path.exists(template_path):
         return template_path
+    # PyInstaller frozen exe: bundled data lives in sys._MEIPASS
+    try:
+        from frozen_path import data_path, is_frozen
+        if is_frozen():
+            frozen = data_path("template.docx")
+            if os.path.exists(frozen):
+                return frozen
+    except ImportError:
+        pass
     here = os.path.dirname(os.path.abspath(__file__))
     candidates = [
         os.path.join(here, "template.docx"),
